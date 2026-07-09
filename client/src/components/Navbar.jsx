@@ -1,31 +1,23 @@
 // components/Navbar.jsx
-import { useState, useEffect, useRef } from "react";
-import { 
-  TrendingUp, 
-  Github, 
-  Twitter, 
-  Bell, 
-  User, 
-  ChevronDown,
-  Moon,
-  Sun,
-  LogOut,
-  Settings,
-  UserCircle,
-  Heart,
-  Bookmark,
-  Menu,
-  X
-} from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { TrendingUp, Sun, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Navbar = () => {
   const [isDark, setIsDark] = useState(true);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(3);
-  const dropdownRef = useRef(null);
+  const [activeSection, setActiveSection] = useState("home");
+  const [isScrolled, setIsScrolled] = useState(false);
   const mobileMenuRef = useRef(null);
+
+  // Solution 3: Use useMemo to prevent recreating links on every render
+  const links = useMemo(() => [
+    { id: "home", label: "Home" },
+    { id: "features", label: "Features" },
+    { id: "how", label: "How It Works" },
+    { id: "insights", label: "Insights" },
+    { id: "faq", label: "FAQ" }
+  ], []);
 
   // Toggle theme
   const toggleTheme = () => {
@@ -33,12 +25,9 @@ const Navbar = () => {
     document.documentElement.classList.toggle('dark');
   };
 
-  // Close dropdown on click outside
+  // Close mobile menu on click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
         setIsMobileMenuOpen(false);
       }
@@ -47,119 +36,125 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Solution 1: scrollToSection with manual calculation
+  const scrollToSection = (sectionId) => {
+    const section = document.getElementById(sectionId);
+
+    if (!section) return;
+
+    const y =
+      section.getBoundingClientRect().top +
+      window.pageYOffset -
+      90;
+
+    window.scrollTo({
+      top: y,
+      behavior: "smooth",
+    });
+
+    setActiveSection(sectionId);
+    setIsMobileMenuOpen(false);
+  };
+
+  // Update active section on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      
+      // Update navbar background on scroll
+      setIsScrolled(scrollPosition > 50);
+
+      // Update active section
+      const offset = 100;
+
+      for (let i = links.length - 1; i >= 0; i--) {
+        const section = document.getElementById(links[i].id);
+        if (section) {
+          const sectionTop = section.offsetTop;
+          const sectionBottom = sectionTop + section.offsetHeight;
+          
+          if (scrollPosition + offset >= sectionTop && scrollPosition + offset < sectionBottom) {
+            setActiveSection(links[i].id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    // Initial check
+    handleScroll();
+    
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [links]); // Solution 3: Added links as dependency
+
   return (
-    <nav className="border-b border-slate-800/50 backdrop-blur-xl bg-slate-950/80 sticky top-0 z-50">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      isScrolled 
+        ? 'backdrop-blur-2xl bg-slate-950/90 border-b border-white/5 shadow-[0_10px_40px_rgba(0,0,0,.25)]' 
+        : 'backdrop-blur-2xl bg-slate-950/70 border-b border-white/5'
+    }`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 md:h-20">
           
           {/* Logo Section */}
-          <div className="flex items-center gap-2">
+          <div 
+            className="flex items-center gap-3 cursor-pointer group"
+            onClick={() => scrollToSection('home')}
+          >
             <motion.div 
-              whileHover={{ rotate: 180 }}
+              whileHover={{ scale: 1.05, rotate: 180 }}
               transition={{ duration: 0.5 }}
-              className="p-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg shadow-blue-500/20"
+              className="h-11 w-11 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20"
             >
               <TrendingUp size={22} className="text-white" />
             </motion.div>
+
             <div className="hidden sm:block">
-              <span className="text-xl font-bold gradient-text">AI Investor</span>
-              <span className="ml-2 text-[10px] font-mono bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">
-                v2.0
-              </span>
+              <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+                AI Investor
+              </h1>
+              <p className="text-xs text-slate-500 leading-none">
+                Smart Stock Analysis
+              </p>
             </div>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1">
-            <NavLink href="#" active>Dashboard</NavLink>
-            <NavLink href="#">Portfolio</NavLink>
-            <NavLink href="#">Watchlist</NavLink>
-            <NavLink href="#">Analytics</NavLink>
+          <div className="hidden lg:flex items-center gap-8">
+            {links.map((link) => (
+              <button
+                key={link.id}
+                onClick={() => scrollToSection(link.id)}
+                className={`relative text-sm font-medium transition after:absolute after:left-0 after:-bottom-2 after:h-[2px] after:transition-all after:duration-300 ${
+                  activeSection === link.id 
+                    ? 'text-white after:w-full after:bg-gradient-to-r from-blue-500 to-purple-500' 
+                    : 'text-slate-400 hover:text-white after:w-0 hover:after:w-full after:bg-gradient-to-r from-blue-500 to-purple-500'
+                }`}
+              >
+                {link.label}
+              </button>
+            ))}
           </div>
 
           {/* Right Section */}
-          <div className="flex items-center gap-2 md:gap-3">
-            {/* Theme Toggle */}
+          <div className="flex items-center gap-3">
+            {/* Dark Mode Toggle */}
             <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.95 }}
               onClick={toggleTheme}
-              className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition border border-slate-700/50"
+              className="h-11 w-11 rounded-xl border border-slate-700 bg-slate-900 hover:border-blue-500 transition flex items-center justify-center hover:shadow-lg hover:shadow-blue-500/10"
             >
-              {isDark ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} className="text-slate-400" />}
+              <Sun size={18} className="text-slate-400 hover:text-yellow-400 transition" />
             </motion.button>
-
-            {/* Notifications */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="relative p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition border border-slate-700/50"
-            >
-              <Bell size={18} className="text-slate-300" />
-              {notificationCount > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-slate-950"
-                >
-                  {notificationCount}
-                </motion.span>
-              )}
-            </motion.button>
-
-            {/* Profile Dropdown */}
-            <div className="relative" ref={dropdownRef}>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-2 p-1.5 pr-3 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 transition border border-slate-700/50"
-              >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm">
-                  JD
-                </div>
-                <span className="text-sm font-medium hidden lg:block">John Doe</span>
-                <motion.div
-                  animate={{ rotate: isDropdownOpen ? 180 : 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <ChevronDown size={16} className="text-slate-400" />
-                </motion.div>
-              </motion.button>
-
-              <AnimatePresence>
-                {isDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute right-0 mt-2 w-56 bg-slate-800/95 backdrop-blur-xl rounded-xl border border-slate-700 shadow-2xl overflow-hidden"
-                  >
-                    <div className="p-3 border-b border-slate-700">
-                      <p className="text-sm font-semibold text-white">John Doe</p>
-                      <p className="text-xs text-slate-400">john@example.com</p>
-                    </div>
-                    <div className="p-1">
-                      <DropdownItem icon={<UserCircle size={16} />} label="Profile" />
-                      <DropdownItem icon={<Heart size={16} />} label="Watchlist" />
-                      <DropdownItem icon={<Bookmark size={16} />} label="Saved" />
-                      <DropdownItem icon={<Settings size={16} />} label="Settings" />
-                    </div>
-                    <div className="p-1 border-t border-slate-700">
-                      <DropdownItem icon={<LogOut size={16} />} label="Logout" danger />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
 
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition border border-slate-700/50"
+              className="lg:hidden h-11 w-11 rounded-xl border border-slate-700 bg-slate-900 hover:border-blue-500 transition flex items-center justify-center"
             >
-              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              {isMobileMenuOpen ? <X size={18} className="text-white" /> : <Menu size={18} className="text-white" />}
             </button>
           </div>
         </div>
@@ -173,18 +168,36 @@ const Navbar = () => {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="md:hidden overflow-hidden border-t border-slate-800/50"
+              className="lg:hidden overflow-hidden backdrop-blur-xl bg-slate-900/80 rounded-2xl border border-white/5 shadow-xl mt-2"
             >
-              <div className="py-3 space-y-1">
-                <MobileNavLink href="#" active>Dashboard</MobileNavLink>
-                <MobileNavLink href="#">Portfolio</MobileNavLink>
-                <MobileNavLink href="#">Watchlist</MobileNavLink>
-                <MobileNavLink href="#">Analytics</MobileNavLink>
-                <div className="pt-2 border-t border-slate-800/50">
-                  <MobileNavLink href="#">Profile</MobileNavLink>
-                  <MobileNavLink href="#">Settings</MobileNavLink>
-                  <MobileNavLink href="#" danger>Logout</MobileNavLink>
-                </div>
+              <div className="p-4 space-y-2">
+                {links.map((link) => (
+                  <button
+                    key={link.id}
+                    onClick={() => scrollToSection(link.id)}
+                    className={`w-full text-left px-4 py-3 text-sm font-medium rounded-xl transition ${
+                      activeSection === link.id 
+                        ? 'text-white bg-blue-500/10' 
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    {link.label}
+                  </button>
+                ))}
+                
+                {/* Mobile Divider */}
+                <div className="border-t border-white/5 my-2"></div>
+                
+                <button
+                  onClick={() => {
+                    toggleTheme();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-3 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition flex items-center gap-3"
+                >
+                  <Sun size={16} />
+                  Toggle Theme
+                </button>
               </div>
             </motion.div>
           )}
@@ -193,48 +206,5 @@ const Navbar = () => {
     </nav>
   );
 };
-
-// Helper Components
-const NavLink = ({ href, children, active = false }) => (
-  <a
-    href={href}
-    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all relative ${
-      active 
-        ? 'text-white bg-blue-500/10' 
-        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-    }`}
-  >
-    {children}
-    {active && (
-      <motion.div
-        layoutId="activeNav"
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
-      />
-    )}
-  </a>
-);
-
-const MobileNavLink = ({ href, children, active = false, danger = false }) => (
-  <a
-    href={href}
-    className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition ${
-      danger ? 'text-red-400 hover:bg-red-500/10' :
-      active ? 'text-white bg-blue-500/10' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-    }`}
-  >
-    {children}
-  </a>
-);
-
-const DropdownItem = ({ icon, label, danger = false }) => (
-  <button
-    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${
-      danger ? 'text-red-400 hover:bg-red-500/10' : 'text-slate-300 hover:bg-slate-700/50'
-    }`}
-  >
-    {icon}
-    {label}
-  </button>
-);
 
 export default Navbar;

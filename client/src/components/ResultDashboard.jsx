@@ -16,7 +16,11 @@ import {
   Award,
   Zap,
   BarChart3,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Newspaper,
+  ExternalLink,
+  Clock,
+  User
 } from "lucide-react";
 
 import RecommendationBadge from "./RecommendationBadge";
@@ -35,6 +39,30 @@ const ResultDashboard = ({ result }) => {
   const change = quote.c - quote.pc;
   const changePercent = quote.pc ? ((change / quote.pc) * 100).toFixed(2) : 0;
   const isPositive = change >= 0;
+
+  // Debug: Log news data
+  console.log("📰 News Data:", news);
+  console.log("📰 News Count:", news?.length);
+
+  // Function to handle news click
+  const handleNewsClick = (url, headline) => {
+    if (!url || url === '#' || url === '') {
+      // If no valid URL, show a toast or alert
+      alert(`🔗 Full article: "${headline}"\n\nPlease visit the source website for the complete article.`);
+      return;
+    }
+    // Open in new tab if valid URL
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  // Function to get valid URL or fallback
+  const getValidUrl = (url, headline) => {
+    if (url && url !== '#' && url.startsWith('http')) {
+      return url;
+    }
+    // Return a search URL as fallback
+    return `https://news.google.com/search?q=${encodeURIComponent(headline)}`;
+  };
 
   return (
     <motion.div
@@ -203,18 +231,22 @@ const ResultDashboard = ({ result }) => {
             <h4 className="text-sm font-semibold text-slate-300">Potential Risks</h4>
           </div>
           <div className="space-y-2">
-            {(analysis.risks || ['No risks identified']).map((risk, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="flex items-start gap-2 bg-red-950/20 border border-red-500/20 rounded-lg p-3"
-              >
-                <span className="text-red-400 text-xs mt-0.5">•</span>
-                <p className="text-sm text-slate-300">{risk}</p>
-              </motion.div>
-            ))}
+            {(analysis.risks && analysis.risks.length > 0) ? (
+              analysis.risks.map((risk, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="flex items-start gap-2 bg-red-950/20 border border-red-500/20 rounded-lg p-3"
+                >
+                  <span className="text-red-400 text-xs mt-0.5">•</span>
+                  <p className="text-sm text-slate-300">{risk}</p>
+                </motion.div>
+              ))
+            ) : (
+              <p className="text-sm text-slate-400">No risks identified</p>
+            )}
           </div>
         </div>
         <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 border border-green-500/20">
@@ -223,65 +255,117 @@ const ResultDashboard = ({ result }) => {
             <h4 className="text-sm font-semibold text-slate-300">Growth Opportunities</h4>
           </div>
           <div className="space-y-2">
-            {(analysis.opportunities || ['No opportunities identified']).map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="flex items-start gap-2 bg-green-950/20 border border-green-500/20 rounded-lg p-3"
-              >
-                <span className="text-green-400 text-xs mt-0.5">•</span>
-                <p className="text-sm text-slate-300">{item}</p>
-              </motion.div>
-            ))}
+            {(analysis.opportunities && analysis.opportunities.length > 0) ? (
+              analysis.opportunities.map((item, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="flex items-start gap-2 bg-green-950/20 border border-green-500/20 rounded-lg p-3"
+                >
+                  <span className="text-green-400 text-xs mt-0.5">•</span>
+                  <p className="text-sm text-slate-300">{item}</p>
+                </motion.div>
+              ))
+            ) : (
+              <p className="text-sm text-slate-400">No opportunities identified</p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ===== NEWS SECTION ===== */}
-      {news.length > 0 && (
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 border border-slate-700">
-          <div className="flex items-center gap-2 mb-4">
-            <Globe className="text-blue-400" size={18} />
+      {/* ===== NEWS SECTION - FIXED LINKS ===== */}
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 border border-slate-700">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Newspaper className="text-blue-400" size={18} />
             <h4 className="text-sm font-semibold text-slate-300">Latest News</h4>
+            {news && news.length > 0 && (
+              <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
+                {news.length} articles
+              </span>
+            )}
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {news.slice(0, 4).map((item, index) => (
-              <motion.a
-                key={index}
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="group bg-slate-800/50 rounded-xl overflow-hidden hover:bg-slate-700/50 transition-all duration-300 border border-slate-700 hover:border-blue-500/30"
-              >
-                {item.image && (
-                  <div className="h-32 overflow-hidden">
-                    <img
-                      src={item.image}
-                      alt={item.headline}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                      }}
-                    />
-                  </div>
-                )}
-                <div className="p-3">
-                  <span className="text-xs text-blue-400">{item.source}</span>
-                  <h5 className="text-sm font-semibold mt-1 line-clamp-2 group-hover:text-blue-400 transition">
-                    {item.headline}
-                  </h5>
-                  <p className="text-xs text-slate-400 mt-1 line-clamp-2">{item.summary}</p>
-                </div>
-              </motion.a>
-            ))}
-          </div>
+          {news && news.length > 0 && (
+            <span className="text-xs text-slate-500 flex items-center gap-1">
+              <Clock size={12} />
+              Last 7 days
+            </span>
+          )}
         </div>
-      )}
+
+        {news && news.length > 0 ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {news.slice(0, 8).map((item, index) => {
+              // Check if URL is valid
+              const hasValidUrl = item.url && item.url !== '#' && item.url.startsWith('http');
+              const articleUrl = hasValidUrl ? item.url : `https://news.google.com/search?q=${encodeURIComponent(item.headline || profile.ticker || 'stock')}`;
+              
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => handleNewsClick(articleUrl, item.headline)}
+                  className={`group bg-slate-800/50 rounded-xl overflow-hidden transition-all duration-300 border border-slate-700 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/5 flex flex-col h-full ${hasValidUrl ? 'hover:bg-slate-700/50 cursor-pointer' : 'cursor-pointer'}`}
+                >
+                  {item.image && (
+                    <div className="h-36 overflow-hidden flex-shrink-0">
+                      <img
+                        src={item.image}
+                        alt={item.headline || 'News image'}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                  <div className="p-3 flex-1 flex flex-col">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-[10px] font-medium text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                        {item.source || 'News'}
+                      </span>
+                      {item.datetime && (
+                        <span className="text-[10px] text-slate-500">
+                          {new Date(item.datetime * 1000).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                    <h5 className="text-sm font-semibold line-clamp-2 group-hover:text-blue-400 transition flex-1">
+                      {item.headline || 'No headline'}
+                    </h5>
+                    {item.summary && (
+                      <p className="text-xs text-slate-400 mt-2 line-clamp-2 flex-1">
+                        {item.summary}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-700/50">
+                      <span className="text-[10px] text-blue-400 flex items-center gap-1 group-hover:gap-2 transition-all">
+                        <ExternalLink size={10} />
+                        {hasValidUrl ? 'Read article' : 'Search article'}
+                      </span>
+                      {item.source && (
+                        <span className="text-[10px] text-slate-600">
+                          {item.source}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Newspaper className="text-slate-600 mb-3" size={40} />
+            <p className="text-slate-400 text-sm">No news available for this company</p>
+            <p className="text-xs text-slate-500 mt-1">Try searching for a different symbol</p>
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 };
