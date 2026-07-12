@@ -3,17 +3,8 @@ import { motion } from "framer-motion";
 import { CheckCircle, AlertCircle, XCircle, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 const RecommendationBadge = ({ recommendation, confidence, size = "md", showStrength = true }) => {
-  // ===== FIX: Map common backend values to INVEST/WATCH/PASS =====
-  const normalizedRec = (() => {
-    const value = (recommendation || "").toUpperCase().trim();
-    if (value === "BUY" || value === "STRONG BUY" || value === "INVEST") return "INVEST";
-    if (value === "HOLD" || value === "WATCH" || value === "NEUTRAL") return "WATCH";
-    if (value === "SELL" || value === "STRONG SELL" || value === "PASS" || value === "AVOID") return "PASS";
-    // If already INVEST/WATCH/PASS, keep as is
-    if (["INVEST", "WATCH", "PASS"].includes(value)) return value;
-    // Default to WATCH
-    return "WATCH";
-  })();
+  // Directly use recommendation (should be BUY/HOLD/SELL or similar)
+  const rec = (recommendation || "HOLD").toUpperCase();
 
   // Determine strength based on confidence
   const getStrength = (conf) => {
@@ -30,38 +21,56 @@ const RecommendationBadge = ({ recommendation, confidence, size = "md", showStre
   // Get recommendation style details
   const getRecommendationDetails = (rec) => {
     const details = {
-      INVEST: {
+      "BUY": {
         bg: "bg-green-500/20",
         border: "border-green-500/50",
         text: "text-green-400",
         hoverBg: "hover:bg-green-500/30",
         icon: <CheckCircle size={size === "lg" ? 20 : 16} />,
-        label: "INVEST",
+        label: "BUY",
         description: "Strong buy recommendation"
       },
-      WATCH: {
+      "STRONG BUY": {
+        bg: "bg-green-500/30",
+        border: "border-green-500/70",
+        text: "text-green-400",
+        hoverBg: "hover:bg-green-500/40",
+        icon: <CheckCircle size={size === "lg" ? 20 : 16} />,
+        label: "STRONG BUY",
+        description: "Exceptional buy opportunity"
+      },
+      "HOLD": {
         bg: "bg-yellow-500/20",
         border: "border-yellow-500/50",
         text: "text-yellow-400",
         hoverBg: "hover:bg-yellow-500/30",
         icon: <AlertCircle size={size === "lg" ? 20 : 16} />,
-        label: "WATCH",
+        label: "HOLD",
         description: "Hold / Monitor"
       },
-      PASS: {
+      "REDUCE": {
+        bg: "bg-orange-500/20",
+        border: "border-orange-500/50",
+        text: "text-orange-400",
+        hoverBg: "hover:bg-orange-500/30",
+        icon: <TrendingDown size={size === "lg" ? 20 : 16} />,
+        label: "REDUCE",
+        description: "Consider reducing position"
+      },
+      "SELL": {
         bg: "bg-red-500/20",
         border: "border-red-500/50",
         text: "text-red-400",
         hoverBg: "hover:bg-red-500/30",
         icon: <XCircle size={size === "lg" ? 20 : 16} />,
-        label: "PASS",
+        label: "SELL",
         description: "Avoid / Sell"
       }
     };
-    return details[rec] || details.WATCH;
+    return details[rec] || details.HOLD;
   };
 
-  const style = getRecommendationDetails(normalizedRec);
+  const style = getRecommendationDetails(rec);
 
   const sizeClasses = size === "lg" 
     ? "px-8 py-4 text-lg" 
@@ -88,8 +97,8 @@ const RecommendationBadge = ({ recommendation, confidence, size = "md", showStre
         ${style.bg} ${style.border} ${style.hoverBg} 
         ${sizeClasses} font-semibold ${style.text}
         transition-all duration-300
-        shadow-lg shadow-${normalizedRec.toLowerCase()}-500/10
-        hover:shadow-xl hover:shadow-${normalizedRec.toLowerCase()}-500/20
+        shadow-lg shadow-${rec.toLowerCase()}-500/10
+        hover:shadow-xl hover:shadow-${rec.toLowerCase()}-500/20
       `}>
         {style.icon}
         {style.label}

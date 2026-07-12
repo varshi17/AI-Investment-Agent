@@ -32,11 +32,18 @@ const ResultDashboard = ({ result }) => {
   const scores = result.scores || {};
   const metrics = result.metrics || {};
 
-  // ===== Use analysis.recommendation and analysis.confidence from backend =====
-  // They are now computed from scores in geminiService.js
-  const recommendation = analysis.recommendation || "WATCH";
-  const confidence = analysis.confidence ?? 50;
-  const financialScore = scores.financialHealth?.score ?? 50;
+  // ===== Fix: Derive recommendation from overall score =====
+  const overallScore = scores?.overall?.score ?? 50;
+  let recommendation = analysis?.recommendation;
+  if (!recommendation) {
+    if (overallScore >= 80) recommendation = "STRONG BUY";
+    else if (overallScore >= 70) recommendation = "BUY";
+    else if (overallScore >= 50) recommendation = "HOLD";
+    else recommendation = "SELL";
+  }
+
+  const confidence = scores?.confidence ?? analysis?.confidence ?? overallScore;
+  const financialScore = scores?.financialHealth?.score ?? 0;
 
   // Price & change
   const currentPrice = Number(quote.currentPrice || 0);
@@ -125,7 +132,7 @@ const ResultDashboard = ({ result }) => {
 
       {/* ===== GAUGES ROW ===== */}
       <div className="grid lg:grid-cols-3 gap-4">
-        <ConfidenceGauge confidence={confidence} />
+        <ConfidenceGauge confidence={confidence} label="Investment Confidence" />
         <FinancialHealthBar score={financialScore} />
         <div className="bg-white rounded-2xl p-5 border border-[#C8D9E6] shadow-sm hover:shadow-xl transition-all duration-300">
           <div className="flex items-center gap-2 mb-3">
@@ -134,7 +141,7 @@ const ResultDashboard = ({ result }) => {
           </div>
           <div className="flex flex-col items-center justify-center h-24">
             <RecommendationBadge recommendation={recommendation} size="lg" confidence={confidence} />
-            <p className="text-xs text-[#567C8D] mt-2">Based on AI Analysis</p>
+            <p className="text-xs text-[#567C8D] mt-2">Based on Financial Analysis</p>
           </div>
         </div>
       </div>
@@ -189,7 +196,7 @@ const ResultDashboard = ({ result }) => {
         </div>
       </div>
 
-      {/* ===== COMPANY INFO (legacy) ===== */}
+      {/* ===== COMPANY INFO ===== */}
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-2xl p-5 border border-[#C8D9E6] shadow-sm hover:shadow-xl transition-all duration-300">
           <div className="flex items-center gap-2 mb-3">
@@ -197,7 +204,8 @@ const ResultDashboard = ({ result }) => {
             <h4 className="text-sm font-semibold text-[#2F4156]">About Company</h4>
           </div>
           <p className="text-sm text-[#567C8D] leading-relaxed">
-            {analysis.company_explanation || 'No company description available.'}
+            {profile.name} is a {profile.industry} company listed on {profile.exchange}. 
+            Market Capitalization: {profile.marketCapString || 'N/A'}.
           </p>
         </div>
         <div className="bg-white rounded-2xl p-5 border border-[#C8D9E6] shadow-sm hover:shadow-xl transition-all duration-300">
@@ -206,7 +214,7 @@ const ResultDashboard = ({ result }) => {
             <h4 className="text-sm font-semibold text-[#2F4156]">Financial Health</h4>
           </div>
           <p className="text-sm text-[#567C8D] leading-relaxed">
-            {analysis.financial_health || 'Financial analysis unavailable.'}
+            {analysis.summary || 'Financial analysis unavailable.'}
           </p>
         </div>
       </div>
@@ -215,19 +223,19 @@ const ResultDashboard = ({ result }) => {
         <div className="bg-white rounded-2xl p-5 border border-[#C8D9E6] shadow-sm hover:shadow-xl transition-all duration-300">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="text-[#567C8D]" size={18} />
-            <h4 className="text-sm font-semibold text-[#2F4156]">Market Position</h4>
+            <h4 className="text-sm font-semibold text-[#2F4156]">Overall Investment Score</h4>
           </div>
           <p className="text-sm text-[#567C8D] leading-relaxed">
-            {analysis.market_position || 'Market position analysis unavailable.'}
+            Score: {scores?.overall?.score ?? 'N/A'} — Recommendation: {recommendation}
           </p>
         </div>
         <div className="bg-white rounded-2xl p-5 border border-[#C8D9E6] shadow-sm hover:shadow-xl transition-all duration-300">
           <div className="flex items-center gap-2 mb-3">
             <Activity className="text-yellow-400" size={18} />
-            <h4 className="text-sm font-semibold text-[#2F4156]">Recent News Impact</h4>
+            <h4 className="text-sm font-semibold text-[#2F4156]">News Impact & Thesis</h4>
           </div>
           <p className="text-sm text-[#567C8D] leading-relaxed">
-            {analysis.recent_news_impact || 'News impact analysis unavailable.'}
+            {analysis.investment_thesis || 'No thesis available.'}
           </p>
         </div>
       </div>

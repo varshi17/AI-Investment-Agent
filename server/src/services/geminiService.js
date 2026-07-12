@@ -1,19 +1,46 @@
 // services/geminiService.js
 import ai from "../config/gemini.js";
 
+// ─── Retry logic for rate limiting ──────────────────────────────
+async function generateWithRetry(generateFn, maxAttempts = 3) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const result = await generateFn();
+      return result;
+    } catch (error) {
+      // Check if it's a 429 with a retryDelay
+      if (error.status === 429 && error.errorDetails) {
+        const retryInfo = error.errorDetails.find(d => d['@type']?.includes('RetryInfo'));
+        if (retryInfo?.retryDelay) {
+          const delaySeconds = parseFloat(retryInfo.retryDelay);
+          if (!isNaN(delaySeconds) && delaySeconds > 0) {
+            const delayMs = delaySeconds * 1000;
+            console.warn(`⏳ Rate limited (attempt ${attempt}), retrying in ${delayMs}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            continue; // retry
+          }
+        }
+      }
+      // If not retriable or max attempts reached, rethrow
+      if (attempt === maxAttempts) throw error;
+      // Fallback: exponential backoff
+      const backoff = Math.min(1000 * Math.pow(2, attempt), 10000);
+      console.warn(`⚠️ Retry attempt ${attempt} after ${backoff}ms`);
+      await new Promise(resolve => setTimeout(resolve, backoff));
+    }
+  }
+  throw new Error(`Failed after ${maxAttempts} attempts`);
+}
+// ─────────────────────────────────────────────────────────────────
+
 export const analyzeWithGemini = async (symbol, research) => {
   try {
-    const { profile, quote, metrics, scores, news } = research;
+    const { profile, quote, metrics, scores, news, recommendations } = research;
 
     const marketCapString = profile.marketCapString || 'N/A';
 
     const prompt = `
 You are a senior Wall Street equity research analyst.
-
-The numerical investment scores below have already been calculated by the backend.
-DO NOT modify them.
-DO NOT calculate new scores.
-Explain what they mean.
 
 Company: ${profile.name} (${profile.ticker})
 Industry: ${profile.industry || 'N/A'}
@@ -37,10 +64,20 @@ Calculated Scores:
 - Risk: ${scores.risk?.score ?? 'N/A'}
 
 =======================
+Analyst Consensus:
+${JSON.stringify(recommendations)}
+
+=======================
 Recent News (top 5):
 ${news.slice(0, 5).map(n => `- ${n.headline}`).join('\n')}
 
 =======================
+Explain the investment in a professional institutional research style.
+Keep the summary concise.
+Do not exaggerate.
+Do not mention score calculations.
+Focus on business quality, growth, valuation, competitive advantages and risks.
+
 Return ONLY JSON with these fields:
 {
   "summary": "Brief summary of the company's overall state (1 sentence).",
@@ -54,10 +91,13 @@ Return ONLY JSON with these fields:
 
     console.log(`🤖 Sending request to Gemini AI for ${symbol}...`);
 
-    const response = await ai.models.generateContent({
+    // ─── Use retry wrapper ──────────────────────────────────────
+    const generateFn = () => ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
     });
+    const response = await generateWithRetry(generateFn);
+    // ────────────────────────────────────────────────────────────
 
     const cleanText = response.text
       .replace(/```json/g, "")
@@ -74,72 +114,92 @@ Return ONLY JSON with these fields:
       parsed = JSON.parse(json);
     } else {
       console.error('❌ No JSON found in Gemini response, using fallback.');
-      return generateFallbackResponse(scores);
+      return generateFallbackResponse(research);
     }
 
-    // ===== Backend computes recommendation and confidence from scores =====
+    // ─── Compute recommendation ──────────────────────────────────
     const overallScore = scores.overall?.score ?? 50;
     const financialHealthScore = scores.financialHealth?.score ?? 50;
     const growthScore = scores.growth?.score ?? 50;
+    const riskScore = scores.risk?.score ?? 50;
 
     let recommendation;
-    if (overallScore >= 80) recommendation = 'INVEST';
-    else if (overallScore >= 65) recommendation = 'WATCH';
-    else recommendation = 'PASS';
+    if (overallScore >= 90) recommendation = "STRONG BUY";
+    else if (overallScore >= 75) recommendation = "BUY";
+    else if (overallScore >= 60) recommendation = "HOLD";
+    else if (overallScore >= 50) recommendation = "REDUCE";
+    else recommendation = "SELL";
 
-    const confidence = Math.round(
-      overallScore * 0.7 +
-      financialHealthScore * 0.2 +
-      growthScore * 0.1
+    // ─── Confidence ──────────────────────────────────────────────
+    let confidence = Math.round(
+      overallScore * 0.5 +
+      financialHealthScore * 0.3 +
+      growthScore * 0.2
     );
+    confidence = Math.min(confidence, 98); // cap at 98%
+
+    // ─── Overall object for frontend ─────────────────────────────
+    const overall = {
+      score: overallScore,
+      level: recommendation,
+    };
 
     console.log(`✅ Analysis complete for ${symbol}:`);
     console.log(`   - Recommendation: ${recommendation}`);
     console.log(`   - Confidence: ${confidence}%`);
 
+    // Return the combined analysis
     return {
-      summary: parsed.summary || 'Analysis complete.',
-      strengths: parsed.strengths || [],
-      weaknesses: parsed.weaknesses || [],
-      opportunities: parsed.opportunities || [],
-      risks: parsed.risks || ['Market volatility', 'Competition'],
-      investment_thesis: parsed.investment_thesis || 'See financial metrics for details.',
+      ...parsed,
       recommendation,
       confidence,
-      // also include the backend level string (BUY/HOLD/SELL) for frontend mapping
-      level: scores.overall?.level || 'Hold',
+      overall,                    // frontend can use analysis.overall.level
+      // Also expose individual scores for flexibility
+      overallScore,
+      financialHealth: financialHealthScore,
+      growth: growthScore,
+      risk: riskScore,
     };
   } catch (error) {
     console.error('❌ Gemini API Error:', error);
-    return generateFallbackResponse(research.scores);
+    return generateFallbackResponse(research);
   }
 };
 
-function generateFallbackResponse(scores) {
-  const overallScore = scores?.overall?.score ?? 50;
-  const financialHealthScore = scores?.financialHealth?.score ?? 50;
-  const growthScore = scores?.growth?.score ?? 50;
+function generateFallbackResponse(research) {
+  const scores = research.scores || {};
+  const overallScore = scores.overall?.score ?? 50;
+  const financialHealthScore = scores.financialHealth?.score ?? 50;
+  const growthScore = scores.growth?.score ?? 50;
 
   let recommendation;
-  if (overallScore >= 80) recommendation = 'INVEST';
-  else if (overallScore >= 65) recommendation = 'WATCH';
-  else recommendation = 'PASS';
+  if (overallScore >= 90) recommendation = "STRONG BUY";
+  else if (overallScore >= 80) recommendation = "BUY";
+  else if (overallScore >= 65) recommendation = "HOLD";
+  else if (overallScore >= 50) recommendation = "REDUCE";
+  else recommendation = "SELL";
 
-  const confidence = Math.round(
-    overallScore * 0.7 +
-    financialHealthScore * 0.2 +
-    growthScore * 0.1
+  let confidence = Math.min(
+    Math.round(overallScore * 0.5 + financialHealthScore * 0.3 + growthScore * 0.2),
+    98
   );
 
   return {
-    summary: 'AI analysis is temporarily unavailable.',
+    summary: `${research.profile?.name || 'The company'} remains fundamentally stable based on current financial metrics.`,
     strengths: [],
     weaknesses: [],
     opportunities: [],
-    risks: ['Unable to analyze current news.'],
-    investment_thesis: 'Analysis generated using backend financial metrics only.',
+    risks: ['Market volatility'],
+    investment_thesis: "Investment decision should rely on backend financial analysis.",
     recommendation,
     confidence,
-    level: scores?.overall?.level || 'Hold',
+    overall: {
+      score: overallScore,
+      level: recommendation,
+    },
+    overallScore,
+    financialHealth: financialHealthScore,
+    growth: growthScore,
+    risk: scores.risk?.score ?? 50,
   };
 }

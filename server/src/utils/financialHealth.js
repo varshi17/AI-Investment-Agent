@@ -22,29 +22,34 @@ export const calculateFinancialHealth = (financials) => {
     }
   }
 
-  // Debt/Equity
+  // Debt/Equity – adjusted thresholds
   const de = financials.totalDebtToEquityQuarterly;
   if (de !== undefined && de !== null) {
     const deRatio = de > 10 ? de / 100 : de;
     if (deRatio < 0.5) {
       score += 10;
       factors.push('Low debt');
-    } else if (deRatio < 1.0) {
+    } else if (deRatio < 1.5) {
+      score += 5;
       factors.push('Moderate debt');
     } else {
-      score -= 15;
+      score -= 5;
       factors.push('High debt');
     }
   }
 
-  // Current Ratio
+  // Current Ratio – added neutral zone
   const cr = financials.currentRatioQuarterly;
   if (cr !== undefined && cr !== null) {
     if (cr > 1.5) {
       score += 10;
       factors.push('Strong liquidity');
     } else if (cr > 1.0) {
+      score += 5;
       factors.push('Adequate liquidity');
+    } else if (cr > 0.8) {
+      // neutral, no change
+      factors.push('Acceptable liquidity');
     } else {
       score -= 10;
       factors.push('Weak liquidity');
@@ -81,9 +86,12 @@ export const calculateFinancialHealth = (financials) => {
     }
   }
 
+  // Clamp score to 0–100
+  const clampedScore = Math.min(Math.max(score, 0), 100);
+
   return {
-    score: Math.min(Math.max(score, 0), 100),
+    score: clampedScore,
     factors,
-    level: score >= 70 ? 'Excellent' : score >= 50 ? 'Moderate' : 'Weak',
+    level: clampedScore >= 70 ? 'Excellent' : clampedScore >= 50 ? 'Moderate' : 'Weak',
   };
 };

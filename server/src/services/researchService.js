@@ -37,7 +37,7 @@ function calculateRiskScore({ profile, quote, financials }) {
   let risk = 50;
 
   // Debt/Equity
-  const de = financials.totalDebtToEquityQuarterly;
+  const de = financials?.metric?.totalDebtToEquityQuarterly;
   if (de !== undefined && de !== null) {
     const deRatio = de > 10 ? de / 100 : de;
     if (deRatio > 1.0) risk += 20;
@@ -46,7 +46,7 @@ function calculateRiskScore({ profile, quote, financials }) {
   }
 
   // Current Ratio
-  const cr = financials.currentRatioQuarterly;
+  const cr = financials?.metric?.currentRatioQuarterly;
   if (cr !== undefined && cr !== null) {
     if (cr < 1.0) risk += 15;
     else if (cr < 1.5) risk += 5;
@@ -54,7 +54,7 @@ function calculateRiskScore({ profile, quote, financials }) {
   }
 
   // Net Margin
-  const pm = financials.netMarginTTM;
+  const pm = financials?.metric?.netMarginTTM;
   if (pm !== undefined && pm !== null) {
     const pmPct = pm > 1 ? pm * 100 : pm;
     if (pmPct < 5) risk += 10;
@@ -104,7 +104,41 @@ export const collectResearch = async (symbol) => {
     const growth = calculateGrowthScore(financials);
     const valuation = calculateValuationScore(financials);
     const risk = calculateRiskScore({ profile, quote, financials });
-    const overall = calculateOverallScore({ financialHealth, growth, valuation, risk });
+
+    // ─── Analyst bonus ──────────────────────────────────────────────
+    let analystBonus = 0;
+    if (recommendations && recommendations.length > 0) {
+      const first = recommendations[0];
+      analystBonus =
+        first.strongBuy * 2 +
+        first.buy -
+        first.sell -
+        first.strongSell * 2;
+      analystBonus = Math.max(-10, Math.min(10, analystBonus));
+    }
+
+    let overall = calculateOverallScore({
+      financialHealth,
+      growth,
+      valuation,
+      risk,
+    });
+
+    // Apply analyst bonus to overall score
+    overall.score = Math.min(100, Math.max(0, overall.score + analystBonus));
+
+    // Set overall level based on score
+    if (overall.score >= 85) overall.level = "BUY";
+    else if (overall.score >= 65) overall.level = "HOLD";
+    else overall.level = "SELL";
+    // ────────────────────────────────────────────────────────────────
+
+    // Confidence (used for the gauge)
+    const confidence = Math.round(
+      overall.score * 0.6 +
+      financialHealth.score * 0.25 +
+      growth.score * 0.15
+    );
 
     console.log(`✅ Research collected for ${symbol}`);
 
@@ -143,7 +177,6 @@ export const collectResearch = async (symbol) => {
         isPositive: quote.c > quote.pc,
       },
 
-      // Simplified news
       news: news && news.length > 0
         ? news.map((item) => ({
             headline: item.headline || 'No headline',
@@ -155,29 +188,25 @@ export const collectResearch = async (symbol) => {
           }))
         : [],
 
-      // Real metrics from Finnhub
       metrics: {
-        peRatio: financials.peNormalizedAnnual ?? financials.peTTM ?? null,
-        eps: financials.epsTTM ?? null,
-        roe: financials.roeTTM ?? null,
-        roa: financials.roaTTM ?? null,
-        debtToEquity: financials.totalDebtToEquityQuarterly ?? null,
-        currentRatio: financials.currentRatioQuarterly ?? null,
-        revenueGrowth: financials.revenueGrowthTTMYoy ?? null,
-        profitMargin: financials.netMarginTTM ?? null,
-        dividendYield: financials.dividendYieldIndicatedAnnual ?? null,
-        week52High: financials["52WeekHigh"] ?? null,
-        week52Low: financials["52WeekLow"] ?? null,
+        peRatio: financials?.metric?.peNormalizedAnnual ?? "N/A",
+        roe: financials?.metric?.roeTTM ?? "N/A",
+        profitMargin: financials?.metric?.netMarginTTM ?? "N/A",
+        debtToEquity: financials?.metric?.totalDebtToEquityQuarterly ?? "N/A",
+        currentRatio: financials?.metric?.currentRatioQuarterly ?? "N/A",
+        revenueGrowth: financials?.metric?.revenueGrowthTTMYoy ?? "N/A",
+        dividendYield: financials?.metric?.dividendYieldIndicatedAnnual ?? "N/A",
         volatility: calculateVolatility(quote),
         marketPosition: getMarketPosition(profile.marketCapitalization),
       },
 
       scores: {
-        financialHealth: financialHealth || { score: 50, level: 'Moderate', factors: [] },
-        growth: growth || { score: 50, level: 'Moderate', factors: [] },
-        valuation: valuation || { score: 50, level: 'Fairly Valued', factors: [] },
-        risk: risk || { score: 50, level: 'Medium', factors: [] },
-        overall: overall || { score: 50, level: 'Hold' },
+        financialHealth,
+        growth,
+        valuation,
+        risk,
+        overall,                 // now includes adjusted score and level
+        confidence,              // added for the gauge
       },
 
       recommendations: recommendations || [],

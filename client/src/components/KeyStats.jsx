@@ -51,7 +51,6 @@ const KeyStats = ({ profile, quote, analysis }) => {
     },
     {
       label: "Market Cap",
-      // ===== FIXED: Use profile.marketCapString directly =====
       value: profile.marketCapString || "N/A",
       icon: <BarChart size={18} className="text-yellow-400" />,
       color: "border-[#C8D9E6]"

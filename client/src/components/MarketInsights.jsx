@@ -1,20 +1,42 @@
 // components/MarketInsights.jsx
 import { motion } from "framer-motion";
-import { TrendingUp, BarChart3, Globe } from "lucide-react";
+import { TrendingUp, BarChart3, Globe, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 const MarketInsights = () => {
-  const popularStocks = [
-    { symbol: "AAPL", name: "Apple Inc.", price: "$189.50", change: "+1.2%" },
-    { symbol: "TSLA", name: "Tesla Inc.", price: "$245.80", change: "-0.8%" },
-    { symbol: "MSFT", name: "Microsoft", price: "$378.20", change: "+0.5%" },
-    { symbol: "NVDA", name: "NVIDIA", price: "$495.60", change: "+2.1%" },
-    { symbol: "AMZN", name: "Amazon", price: "$145.30", change: "+0.9%" }
-  ];
+  const [popularStocks, setPopularStocks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  useEffect(() => {
+    const fetchPopularStocks = async () => {
+      try {
+        const response = await fetch('/api/market/popular');
+        const data = await response.json();
+        if (data.success) {
+          setPopularStocks(data.data);
+        } else {
+          setError(data.message || 'Failed to fetch stocks');
+        }
+      } catch (err) {
+        setError('Network error – please try again later');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPopularStocks();
+    // Optionally refresh every 60 seconds
+    const interval = setInterval(fetchPopularStocks, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Hardcoded exchanges (you could also fetch these from backend)
   const exchanges = ["NASDAQ", "NYSE", "LSE", "TSE", "SIX"];
 
   return (
     <div className="flex flex-col items-center gap-10 w-full px-4 md:px-8 lg:px-16 py-14">
+      {/* Header remains the same */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -34,36 +56,61 @@ const MarketInsights = () => {
       </motion.div>
 
       {/* Popular Stocks Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 w-full max-w-7xl mx-auto mb-8 gap-y-4">
-        {popularStocks.map((stock, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: index * 0.05 }}
-            viewport={{ once: true }}
-            whileHover={{
-              y: -6,
-              scale: 1.02,
-            }}
-            className="bg-white rounded-3xl p-5 border border-[#C8D9E6] shadow-sm hover:shadow-xl hover:border-[#567C8D] hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="animate-spin text-[#567C8D]" size={40} />
+          <span className="ml-3 text-[#567C8D]">Loading market data...</span>
+        </div>
+      ) : error ? (
+        <div className="text-red-400 bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+          <p>{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-3 px-4 py-2 bg-[#567C8D] text-white rounded-lg hover:bg-[#2F4156] transition"
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-base font-bold text-[#2F4156]">{stock.symbol}</span>
-              <TrendingUp className="text-[#567C8D]" size={16} />
-            </div>
-            <p className="text-sm text-[#567C8D] truncate">{stock.name}</p>
-            <div className="flex items-center justify-between mt-3">
-              <span className="text-2xl font-bold text-[#2F4156]">{stock.price}</span>
-              <span className={`text-sm font-medium ${stock.change.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>
-                {stock.change}
-              </span>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      
-      {/* Exchanges and Metrics */}
+            Retry
+          </button>
+        </div>
+      ) : popularStocks.length === 0 ? (
+        <p className="text-[#567C8D]">No popular stocks available at the moment.</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 w-full max-w-7xl mx-auto mb-8 gap-y-4">
+          {popularStocks.map((stock, index) => {
+            const change = stock.change ?? 0;
+            const isPositive = change >= 0;
+            return (
+              <motion.div
+                key={stock.symbol || index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.05 }}
+                viewport={{ once: true }}
+                whileHover={{
+                  y: -6,
+                  scale: 1.02,
+                }}
+                className="bg-white rounded-3xl p-5 border border-[#C8D9E6] shadow-sm hover:shadow-xl hover:border-[#567C8D] hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-base font-bold text-[#2F4156]">{stock.symbol}</span>
+                  <TrendingUp className="text-[#567C8D]" size={16} />
+                </div>
+                <p className="text-sm text-[#567C8D] truncate">{stock.name}</p>
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-2xl font-bold text-[#2F4156]">
+                    ${stock.price?.toFixed(2) ?? 'N/A'}
+                  </span>
+                  <span className={`text-sm font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                    {isPositive ? '+' : ''}{change.toFixed(2)}%
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Exchanges and Metrics – you can also make these dynamic if you fetch from backend */}
       <div className="grid md:grid-cols-2 gap-6 w-full max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, x: -20 }}

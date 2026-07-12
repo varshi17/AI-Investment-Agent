@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 
 // Import routes
 import analyzeRoutes from "./routes/analyzeRoutes.js";
+import marketRoutes from "./routes/marketRoutes.js"; // <-- new market route
 
 dotenv.config();
 
@@ -61,6 +62,11 @@ app.get("/", (req, res) => {
         description: "Analyze a stock using AI",
         body: { symbol: "AAPL" }
       },
+      market: {
+        path: "/api/market/popular",
+        method: "GET",
+        description: "Get live data for popular stocks"
+      },
       health: {
         path: "/health",
         method: "GET",
@@ -72,6 +78,7 @@ app.get("/", (req, res) => {
 
 // ===== ROUTES =====
 app.use("/api/analyze", analyzeRoutes);
+app.use("/api/market", marketRoutes); // <-- mounted market routes
 
 // ===== 404 HANDLER =====
 app.use((req, res) => {

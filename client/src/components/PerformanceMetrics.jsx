@@ -3,24 +3,17 @@ import { motion } from "framer-motion";
 import { BarChart3, TrendingUp, TrendingDown, DollarSign, Activity } from "lucide-react";
 
 const PerformanceMetrics = ({ analysis, quote, profile, scores, metrics }) => {
-  const currentPrice = Number(quote.currentPrice || 0);
-  const dayHigh = Number(quote.dayHigh || 0);
-  const dayLow = Number(quote.dayLow || 0);
-
-  // Use scores for financial health and confidence
-  const confidence = analysis?.confidence ?? scores?.overall?.score ?? 50;
+  // Use scores from backend
+  const overall = scores?.overall?.score ?? 50;
   const financialHealth = scores?.financialHealth?.score ?? 50;
-
-  // Market position: percentage of current price relative to day high
-  const marketPosition = dayHigh > 0 ? Math.min(100, ((currentPrice || 0) / (dayHigh || 1)) * 100) : 50;
-
-  // Growth potential: range between day high and low
-  const growthPotential = dayLow > 0 ? Math.min(100, ((dayHigh - dayLow) / (dayLow || 1)) * 100) : 50;
+  const growth = scores?.growth?.score ?? 50;
+  const risk = scores?.risk?.score ?? 50;
+  const riskInverted = 100 - risk; // so high score = low risk
 
   const metricItems = [
     {
-      label: "AI Confidence",
-      value: confidence,
+      label: "Overall Score",
+      value: overall,
       icon: <Activity size={16} className="text-[#567C8D]" />,
       color: "#3b82f6"
     },
@@ -31,14 +24,14 @@ const PerformanceMetrics = ({ analysis, quote, profile, scores, metrics }) => {
       color: "#22c55e"
     },
     {
-      label: "Market Position",
-      value: marketPosition,
+      label: "Growth Score",
+      value: growth,
       icon: <TrendingUp size={16} className="text-[#567C8D]" />,
       color: "#8b5cf6"
     },
     {
-      label: "Growth Potential",
-      value: growthPotential,
+      label: "Risk (low = high score)",
+      value: riskInverted,
       icon: <TrendingDown size={16} className="text-yellow-400" />,
       color: "#eab308"
     }

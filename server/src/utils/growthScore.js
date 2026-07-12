@@ -9,13 +9,16 @@ export const calculateGrowthScore = (financials) => {
   const rg = financials.revenueGrowthTTMYoy;
   if (rg !== undefined && rg !== null) {
     const rgPct = rg > 1 ? rg * 100 : rg;
-    if (rgPct > 20) {
+    if (rgPct > 15) {
       score += 20;
       factors.push('High revenue growth');
-    } else if (rgPct > 10) {
+    } else if (rgPct > 5) {
       score += 10;
       factors.push('Moderate revenue growth');
-    } else if (rgPct < 0) {
+    } else if (rgPct > 0) {
+      score += 5;
+      factors.push('Low revenue growth');
+    } else {
       score -= 15;
       factors.push('Revenue decline');
     }
@@ -41,9 +44,12 @@ export const calculateGrowthScore = (financials) => {
     }
   }
 
+  // Clamp score to 0–100 and use clamped value for level
+  const clampedScore = Math.min(Math.max(score, 0), 100);
+
   return {
-    score: Math.min(Math.max(score, 0), 100),
+    score: clampedScore,
     factors,
-    level: score >= 70 ? 'High' : score >= 50 ? 'Moderate' : 'Low',
+    level: clampedScore >= 70 ? 'High' : clampedScore >= 50 ? 'Moderate' : 'Low',
   };
 };

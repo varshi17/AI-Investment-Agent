@@ -9,6 +9,9 @@ const CACHE_DURATION = 10 * 60 * 1000;
 
 export const analyzeCompany = async (req, res) => {
   try {
+    // ─── DISABLE CACHE FOR DEMO ──────────────────────────────────
+    cache.clear(); // <-- ensures we always get fresh data
+
     const { symbol, company } = req.body;
 
     if (!symbol && !company) {
@@ -36,17 +39,6 @@ export const analyzeCompany = async (req, res) => {
     }
 
     resolvedSymbol = resolvedSymbol.toUpperCase();
-
-    const cacheKey = resolvedSymbol;
-    const cached = cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      console.log(`✅ Cache hit for ${cacheKey}`);
-      return res.status(200).json({
-        success: true,
-        fromCache: true,
-        ...cached.data,
-      });
-    }
 
     console.log(`🔍 Analyzing: ${resolvedSymbol}`);
 
@@ -86,14 +78,33 @@ export const analyzeCompany = async (req, res) => {
       );
     }
 
-    // Fetch historical and AI analysis in parallel
-    const [historical, analysis] = await Promise.all([
-      getHistoricalData(resolvedSymbol),
-      analyzeWithGemini(resolvedSymbol, research),
-    ]);
+    // ─── Fetch historical and AI analysis with fallback ──────────
+    let historical = null;
+    let analysis = null;
+
+    try {
+      [historical, analysis] = await Promise.all([
+        getHistoricalData(resolvedSymbol),
+        analyzeWithGemini(resolvedSymbol, research),
+      ]);
+    } catch (err) {
+      console.error("Error in historical or Gemini:", err);
+      historical = { s: "no_data" };
+      analysis = {
+        summary: "Analysis unavailable.",
+        strengths: [],
+        weaknesses: [],
+        opportunities: [],
+        risks: [],
+        investment_thesis: "",
+        recommendation: "HOLD",
+        confidence: 50,
+        overall: { score: 50, level: "HOLD" },
+      };
+    }
 
     const responseData = {
-      analysis, // ← key is 'analysis'
+      analysis,
       profile: research.profile,
       quote: research.quote,
       metrics: research.metrics,
@@ -104,11 +115,15 @@ export const analyzeCompany = async (req, res) => {
       metadata: {
         symbol: resolvedSymbol,
         analyzedAt: new Date().toISOString(),
+        api: "Finnhub",
+        ai: "Gemini 2.5 Flash",
+        version: "2.0",
         cached: false,
       },
     };
 
-    cache.set(cacheKey, {
+    // (optional) store in cache if you want, but we cleared it
+    cache.set(resolvedSymbol, {
       timestamp: Date.now(),
       data: responseData,
     });
