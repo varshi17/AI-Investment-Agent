@@ -21,21 +21,21 @@ const FinancialHealthBar = ({ score = 50, label = "Financial Health Score" }) =>
   const statusLabel = getLabel(score);
 
   return (
-    <div className="bg-slate-900 rounded-xl p-6 border border-slate-800">
+    <div className="bg-white rounded-2xl p-6 border border-[#C8D9E6] shadow-sm hover:shadow-xl transition-all">
       <div className="flex items-center gap-3 mb-4">
         <BadgeDollarSign className="text-green-400" size={20} />
-        <h3 className="text-lg font-semibold">{label}</h3>
+        <h3 className="text-lg font-semibold text-[#2F4156]">{label}</h3>
       </div>
 
       <div className="space-y-3">
         <div className="flex justify-between items-end">
-          <span className="text-3xl font-bold" style={{ color }}>
+          <span className="text-3xl font-bold text-[#2F4156]" style={{ color }}>
             {score}/100
           </span>
-          <span className="text-sm text-slate-400">{statusLabel}</span>
+          <span className="text-sm text-[#567C8D]">{statusLabel}</span>
         </div>
 
-        <div className="relative h-4 bg-slate-800 rounded-full overflow-hidden">
+        <div className="relative h-4 bg-[#E2E8F0] rounded-full overflow-hidden">
           <motion.div
             className="h-full rounded-full"
             style={{ backgroundColor: color }}
@@ -45,7 +45,7 @@ const FinancialHealthBar = ({ score = 50, label = "Financial Health Score" }) =>
           />
         </div>
 
-        <div className="flex justify-between text-xs text-slate-500">
+        <div className="flex justify-between text-xs text-[#567C8D]">
           <span>0</span>
           <span>Poor</span>
           <span>Fair</span>

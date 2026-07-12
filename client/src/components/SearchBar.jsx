@@ -19,6 +19,100 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import API from "../services/api";
 
+// ===== COMPANY NAME TO SYMBOL MAPPING =====
+const COMPANY_SYMBOL_MAP = {
+  'APPLE': 'AAPL',
+  'GOOGLE': 'GOOGL',
+  'GOOG': 'GOOGL',
+  'FACEBOOK': 'META',
+  'META': 'META',
+  'MICROSOFT': 'MSFT',
+  'AMAZON': 'AMZN',
+  'TESLA': 'TSLA',
+  'NVIDIA': 'NVDA',
+  'NETFLIX': 'NFLX',
+  'ALPHABET': 'GOOGL',
+  'BERKSHIRE': 'BRK.B',
+  'BERKSHIRE HATHAWAY': 'BRK.B',
+  'JPMORGAN': 'JPM',
+  'JPM': 'JPM',
+  'VISA': 'V',
+  'MASTERCARD': 'MA',
+  'UNITEDHEALTH': 'UNH',
+  'JOHNSON & JOHNSON': 'JNJ',
+  'JNJ': 'JNJ',
+  'WALMART': 'WMT',
+  'EXXON': 'XOM',
+  'EXXON MOBIL': 'XOM',
+  'CHEVRON': 'CVX',
+  'PROCTER & GAMBLE': 'PG',
+  'PG': 'PG',
+  'BANK OF AMERICA': 'BAC',
+  'BAC': 'BAC',
+  'HOME DEPOT': 'HD',
+  'HD': 'HD',
+  'COSTCO': 'COST',
+  'COST': 'COST',
+  'DISNEY': 'DIS',
+  'DIS': 'DIS',
+  'MCDONALDS': 'MCD',
+  'MCD': 'MCD',
+  'CISCO': 'CSCO',
+  'CSCO': 'CSCO',
+  'PEPSICO': 'PEP',
+  'PEP': 'PEP',
+  'COCA COLA': 'KO',
+  'COKE': 'KO',
+  'KO': 'KO',
+  'MERCK': 'MRK',
+  'MRK': 'MRK',
+  'INTEL': 'INTC',
+  'INTC': 'INTC',
+  'IBM': 'IBM',
+  'GE': 'GE',
+  'GENERAL ELECTRIC': 'GE',
+  'WFC': 'WFC',
+  'WELLS FARGO': 'WFC',
+  'TMO': 'TMO',
+  'THERMO FISHER': 'TMO',
+  'ABT': 'ABT',
+  'ABBOTT': 'ABT',
+  'DHR': 'DHR',
+  'DANAHER': 'DHR',
+  'HON': 'HON',
+  'HONEYWELL': 'HON',
+  'UPS': 'UPS',
+  'UNITED PARCEL': 'UPS',
+  'BA': 'BA',
+  'BOEING': 'BA',
+  'SBUX': 'SBUX',
+  'STARBUCKS': 'SBUX',
+  'NKE': 'NKE',
+  'NIKE': 'NKE',
+  'TGT': 'TGT',
+  'TARGET': 'TGT',
+  'LOW': 'LOW',
+  'LOWES': 'LOW'
+};
+
+// Helper function to map company name to symbol
+const mapToSymbol = (input) => {
+  const upperInput = input.toUpperCase().trim();
+  
+  // Check if it's a company name in our map
+  if (COMPANY_SYMBOL_MAP[upperInput]) {
+    return COMPANY_SYMBOL_MAP[upperInput];
+  }
+  
+  // If it's already a symbol (1-5 letters, all caps), return as is
+  if (/^[A-Z]{1,5}$/.test(upperInput)) {
+    return upperInput;
+  }
+  
+  // Otherwise, return the input (let backend try to resolve)
+  return upperInput;
+};
+
 const SearchBar = ({ onSearch, isLoading, compact = false }) => {
   const [symbol, setSymbol] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -122,28 +216,35 @@ const SearchBar = ({ onSearch, isLoading, compact = false }) => {
 
   const handleSubmit = () => {
     if (!symbol.trim() || isLoading) return;
-    const searchSymbol = symbol.trim().toUpperCase();
-    saveRecentSearch(searchSymbol);
+    
+    // ===== FIXED: Map company name to symbol =====
+    const searchInput = symbol.trim().toUpperCase();
+    const mappedSymbol = mapToSymbol(searchInput);
+    
+    saveRecentSearch(mappedSymbol);
     setShowSuggestions(false);
     setIsFocused(false);
-    onSearch(searchSymbol);
+    onSearch(mappedSymbol);
   };
 
   const handleSuggestionClick = (item) => {
     const symbol = item.symbol;
-    setSymbol(symbol);
-    saveRecentSearch(symbol);
+    // Map to proper symbol if it's a company name
+    const mappedSymbol = mapToSymbol(symbol);
+    setSymbol(mappedSymbol);
+    saveRecentSearch(mappedSymbol);
     setShowSuggestions(false);
     setIsFocused(false);
-    onSearch(symbol);
+    onSearch(mappedSymbol);
   };
 
   const handleRecentClick = (symbol) => {
-    setSymbol(symbol);
-    saveRecentSearch(symbol);
+    const mappedSymbol = mapToSymbol(symbol);
+    setSymbol(mappedSymbol);
+    saveRecentSearch(mappedSymbol);
     setShowSuggestions(false);
     setIsFocused(false);
-    onSearch(symbol);
+    onSearch(mappedSymbol);
   };
 
   const clearAll = () => {
@@ -153,35 +254,16 @@ const SearchBar = ({ onSearch, isLoading, compact = false }) => {
     inputRef.current?.focus();
   };
 
-  // Company icons for suggestions
-  const getCompanyIcon = (symbol) => {
-    const icons = {
-      'AAPL': '🍎',
-      'TSLA': '⚡',
-      'MSFT': '🪟',
-      'GOOGL': '🔍',
-      'AMZN': '🛒',
-      'NVDA': '🟢',
-      'META': '📱',
-      'NFLX': '🎬',
-      'UBER': '🚗',
-      'PYPL': '💳',
-      'DIS': '🏰',
-      'KO': '🥤',
-      'PEP': '🥤',
-      'NKE': '👟',
-      'WMT': '🛍️'
-    };
-    return icons[symbol] || '📈';
-  };
+  // Ticker badge initials
+  const getTickerInitial = (symbol) => (symbol ? symbol.charAt(0).toUpperCase() : "?");
 
   const popularStocks = [
-    { symbol: "AAPL", name: "Apple", icon: "🍎" },
-    { symbol: "TSLA", name: "Tesla", icon: "⚡" },
-    { symbol: "NVDA", name: "NVIDIA", icon: "🟢" },
-    { symbol: "MSFT", name: "Microsoft", icon: "🪟" },
-    { symbol: "AMZN", name: "Amazon", icon: "🛒" },
-    { symbol: "GOOGL", name: "Google", icon: "🔍" }
+    { symbol: "AAPL", name: "Apple" },
+    { symbol: "TSLA", name: "Tesla" },
+    { symbol: "NVDA", name: "NVIDIA" },
+    { symbol: "MSFT", name: "Microsoft" },
+    { symbol: "AMZN", name: "Amazon" },
+    { symbol: "GOOGL", name: "Google" }
   ];
 
   // Compact mode for dashboard
@@ -228,7 +310,7 @@ const SearchBar = ({ onSearch, isLoading, compact = false }) => {
             whileTap={{ scale: 0.98 }}
             onClick={handleSubmit}
             disabled={!symbol.trim() || isLoading}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl font-semibold transition-all disabled:opacity-50 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 text-sm whitespace-nowrap flex items-center justify-center gap-2 min-w-[120px]"
+            className="px-6 py-3 bg-[#2F4156] hover:bg-[#567C8D] text-white rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-xl text-sm whitespace-nowrap flex items-center justify-center gap-2 min-w-[120px]"
           >
             {isLoading ? (
               <>
@@ -252,11 +334,11 @@ const SearchBar = ({ onSearch, isLoading, compact = false }) => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
               transition={{ duration: 0.15 }}
-              className="absolute w-full mt-1 bg-slate-800/95 backdrop-blur-xl rounded-xl border border-slate-700 overflow-hidden shadow-2xl z-50"
+              className="absolute w-full mt-1 bg-white rounded-xl border border-[#C8D9E6] overflow-hidden shadow-2xl z-50"
             >
               {recentSearches.length > 0 && suggestions.length === 0 && (
                 <div className="p-2">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wider px-3 py-1 flex items-center gap-2">
+                  <p className="text-[10px] text-[#567C8D] uppercase tracking-wider px-3 py-1 flex items-center gap-2">
                     <Clock size={12} />
                     Recent Searches
                   </p>
@@ -264,10 +346,12 @@ const SearchBar = ({ onSearch, isLoading, compact = false }) => {
                     <button
                       key={index}
                       onClick={() => handleRecentClick(item)}
-                      className="w-full px-3 py-2 text-left hover:bg-slate-700/50 rounded-lg transition flex items-center gap-3 text-sm"
+                      className="w-full px-3 py-2 text-left hover:bg-[#F5EFEB] rounded-lg transition flex items-center gap-3 text-sm"
                     >
-                      <span className="text-lg">{getCompanyIcon(item)}</span>
-                      <span className="font-semibold">{item}</span>
+                      <span className="h-7 w-7 shrink-0 rounded-md bg-[#F5EFEB] border border-[#C8D9E6] flex items-center justify-center text-xs font-bold text-[#567C8D]">
+                        {getTickerInitial(item)}
+                      </span>
+                      <span className="font-semibold text-[#2F4156]">{item}</span>
                     </button>
                   ))}
                 </div>
@@ -280,16 +364,18 @@ const SearchBar = ({ onSearch, isLoading, compact = false }) => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.03 }}
                   onClick={() => handleSuggestionClick(item)}
-                  className="w-full px-4 py-2.5 text-left hover:bg-slate-700/50 hover:border-l-2 hover:border-blue-500 transition flex items-center justify-between text-sm"
+                  className="w-full px-4 py-2.5 text-left hover:bg-[#F5EFEB] hover:border-l-2 hover:border-[#567C8D] transition flex items-center justify-between text-sm"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-lg">{getCompanyIcon(item.symbol)}</span>
+                    <span className="h-7 w-7 shrink-0 rounded-md bg-[#F5EFEB] border border-[#C8D9E6] flex items-center justify-center text-xs font-bold text-[#567C8D]">
+                      {getTickerInitial(item.symbol)}
+                    </span>
                     <div>
-                      <span className="font-semibold">{item.symbol}</span>
-                      <span className="text-xs text-slate-400 ml-2">{item.description}</span>
+                      <span className="font-semibold text-[#2F4156]">{item.symbol}</span>
+                      <span className="text-xs text-[#567C8D] ml-2">{item.description}</span>
                     </div>
                   </div>
-                  <span className="text-[10px] text-slate-500 bg-slate-700/30 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] text-[#567C8D] bg-[#F5EFEB] px-2 py-0.5 rounded-full">
                     {item.type || 'Stock'}
                   </span>
                 </motion.button>
@@ -303,17 +389,15 @@ const SearchBar = ({ onSearch, isLoading, compact = false }) => {
 
   // Full landing page version - PREMIUM
   return (
-    <div ref={wrapperRef} className="flex flex-col items-center gap-4 w-full max-w-4xl mx-auto">
-      {/* Premium Glass Container */}
+    <div ref={wrapperRef} className="flex flex-col items-center gap-5 w-full max-w-4xl mx-auto">
+      {/* Premium Container */}
       <div className="relative w-full">
-        <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-blue-600/20 via-violet-500/20 to-cyan-500/20 blur-xl" />
-        
-        <div className={`relative premium-card p-3 rounded-3xl bg-slate-900/80 backdrop-blur-xl border transition-all duration-300 ${
-          isFocused ? 'border-blue-500/50 shadow-lg shadow-blue-500/20' : 'border-slate-700/50'
+        <div className={`relative premium-card p-3 rounded-2xl bg-white border transition-all duration-300 ${
+          isFocused ? 'border-[#567C8D] shadow-xl shadow-[#567C8D]/10' : 'border-[#C8D9E6]'
         }`}>
           {/* Search Row */}
           <div className="flex items-center gap-3">
-            <Search className="text-slate-400 ml-2" size={22} />
+            <Search className="text-[#567C8D] ml-2" size={22} />
             
             <input
               ref={inputRef}
@@ -325,7 +409,7 @@ const SearchBar = ({ onSearch, isLoading, compact = false }) => {
                 if (symbol.length >= 2) setShowSuggestions(true);
               }}
               placeholder="Search Apple, Tesla, Microsoft..."
-              className="flex-1 bg-transparent outline-none text-lg placeholder:text-slate-500 py-3"
+              className="flex-1 bg-transparent outline-none text-lg text-[#2F4156] placeholder:text-[#567C8D]/70 py-3"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSubmit();
                 if (e.key === "Escape") clearAll();
@@ -337,24 +421,24 @@ const SearchBar = ({ onSearch, isLoading, compact = false }) => {
             {symbol && !isLoading && (
               <button
                 onClick={clearAll}
-                className="text-slate-400 hover:text-white transition p-1"
+                className="text-[#567C8D] hover:text-[#2F4156] transition p-1"
               >
                 <X size={18} />
               </button>
             )}
             
             {isLoading && (
-              <LoaderCircle className="text-blue-500 animate-spin" size={20} />
+              <LoaderCircle className="text-[#567C8D] animate-spin" size={20} />
             )}
             
             {/* Keyboard Shortcut */}
-            <kbd className="text-[10px] text-slate-500 bg-slate-800/50 px-2 py-1 rounded border border-slate-700 hidden sm:block">
+            <kbd className="text-[10px] text-[#567C8D] bg-[#F5EFEB] px-2 py-1 rounded border border-[#C8D9E6] hidden sm:block">
               Ctrl + K
             </kbd>
           </div>
         </div>
 
-        {/* Suggestions Dropdown - Full Premium */}
+        {/* Suggestions Dropdown - Premium */}
         <AnimatePresence>
           {showSuggestions && (suggestions.length > 0 || recentSearches.length > 0) && (
             <motion.div
@@ -362,11 +446,11 @@ const SearchBar = ({ onSearch, isLoading, compact = false }) => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
-              className="absolute w-full mt-2 bg-slate-800/95 backdrop-blur-xl rounded-2xl border border-slate-700 overflow-hidden shadow-2xl z-50"
+              className="absolute w-full mt-2 bg-white rounded-2xl border border-[#C8D9E6] overflow-hidden shadow-2xl z-50"
             >
               {recentSearches.length > 0 && suggestions.length === 0 && (
                 <div className="p-3">
-                  <p className="text-xs text-slate-500 uppercase tracking-wider px-3 py-1 flex items-center gap-2">
+                  <p className="text-xs text-[#567C8D] uppercase tracking-wider px-3 py-1 flex items-center gap-2">
                     <Clock size={14} />
                     Recent Searches
                   </p>
@@ -374,10 +458,12 @@ const SearchBar = ({ onSearch, isLoading, compact = false }) => {
                     <button
                       key={index}
                       onClick={() => handleRecentClick(item)}
-                      className="w-full px-3 py-2.5 text-left hover:bg-slate-700/50 rounded-xl transition flex items-center gap-3"
+                      className="w-full px-3 py-2.5 text-left hover:bg-[#F5EFEB] rounded-xl transition flex items-center gap-3"
                     >
-                      <span className="text-xl">{getCompanyIcon(item)}</span>
-                      <span className="font-semibold">{item}</span>
+                      <span className="h-8 w-8 shrink-0 rounded-lg bg-[#F5EFEB] border border-[#C8D9E6] flex items-center justify-center text-sm font-bold text-[#567C8D]">
+                        {getTickerInitial(item)}
+                      </span>
+                      <span className="font-semibold text-[#2F4156]">{item}</span>
                     </button>
                   ))}
                 </div>
@@ -390,29 +476,31 @@ const SearchBar = ({ onSearch, isLoading, compact = false }) => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.03 }}
                   onClick={() => handleSuggestionClick(item)}
-                  className="w-full px-5 py-3 text-left hover:bg-slate-700/50 hover:border-l-2 hover:border-blue-500 transition flex items-center justify-between"
+                  className="w-full px-5 py-3 text-left hover:bg-[#F5EFEB] hover:border-l-2 hover:border-[#567C8D] transition flex items-center justify-between"
                 >
                   <div className="flex items-center gap-4">
-                    <span className="text-2xl">{getCompanyIcon(item.symbol)}</span>
+                    <span className="h-9 w-9 shrink-0 rounded-lg bg-[#F5EFEB] border border-[#C8D9E6] flex items-center justify-center text-sm font-bold text-[#567C8D]">
+                      {getTickerInitial(item.symbol)}
+                    </span>
                     <div>
-                      <span className="font-semibold">{item.symbol}</span>
-                      <span className="text-sm text-slate-400 ml-3">{item.description}</span>
+                      <span className="font-semibold text-[#2F4156]">{item.symbol}</span>
+                      <span className="text-sm text-[#567C8D] ml-3">{item.description}</span>
                     </div>
                   </div>
-                  <span className="text-xs text-slate-500 bg-slate-700/30 px-2.5 py-1 rounded-full">
+                  <span className="text-xs text-[#567C8D] bg-[#F5EFEB] px-2.5 py-1 rounded-full">
                     {item.type || 'Stock'}
                   </span>
                 </motion.button>
               ))}
               
-              {/* AI Tip - Updated */}
-              <div className="px-5 py-3 border-t border-slate-700 bg-gradient-to-r from-blue-500/5 to-purple-500/5 flex items-start gap-3">
-                <Sparkles size={16} className="text-purple-400 mt-0.5 flex-shrink-0" />
+              {/* AI Tip */}
+              <div className="px-5 py-3 border-t border-[#C8D9E6] bg-gradient-to-r from-[#567C8D]/5 to-[#2F4156]/5 flex items-start gap-3">
+                <Sparkles size={16} className="text-[#567C8D] mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-xs text-slate-400">
-                    <span className="text-blue-400 font-medium">AI analyzes</span> Financial Health · Risk · Growth · News · Valuation
+                  <p className="text-xs text-[#2F4156]">
+                    <span className="text-[#567C8D] font-medium">AI analyzes</span> Financial Health · Risk · Growth · News · Valuation
                   </p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">
+                  <p className="text-[10px] text-[#567C8D] mt-0.5">
                     Powered by Gemini AI — Instant insights in seconds
                   </p>
                 </div>
@@ -422,41 +510,29 @@ const SearchBar = ({ onSearch, isLoading, compact = false }) => {
         </AnimatePresence>
       </div>
 
-      {/* Popular Stocks - Premium Glass Chips */}
-      <div className="flex flex-wrap gap-2 justify-center mt-2">
-        <span className="text-sm text-slate-400 flex items-center gap-1">
-          <Zap size={14} className="text-yellow-400" />
-          Popular:
-        </span>
-        {popularStocks.map((stock) => (
-          <motion.button
-            key={stock.symbol}
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              setSymbol(stock.symbol);
-              onSearch(stock.symbol);
-              saveRecentSearch(stock.symbol);
-            }}
-            disabled={isLoading}
-            className="text-sm px-4 py-1.5 rounded-full bg-slate-800/60 backdrop-blur-sm hover:bg-slate-700/80 transition border border-slate-700/50 hover:border-slate-600 disabled:opacity-50 flex items-center gap-2 group shadow-lg shadow-black/10"
-          >
-            <span className="text-base">{stock.icon}</span>
-            <span className="font-semibold">{stock.symbol}</span>
-            <span className="text-xs text-slate-500 group-hover:text-slate-400 transition hidden sm:inline">
-              {stock.name}
-            </span>
-          </motion.button>
-        ))}
-      </div>
-
-      {/* Analyze Button - Premium */}
+      {/* Analyze Button */}
       <motion.button
         whileHover={{ scale: 1.03 }}
         whileTap={{ scale: 0.98 }}
         onClick={handleSubmit}
         disabled={!symbol.trim() || isLoading}
-        className="w-full md:w-auto px-10 py-4 bg-gradient-to-r from-blue-600 via-blue-700 to-purple-600 hover:from-blue-700 hover:via-blue-800 hover:to-purple-700 rounded-2xl font-semibold transition-all disabled:opacity-50 disabled:hover:scale-100 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 text-lg flex items-center gap-3 justify-center group"
+        className="
+          px-10
+          py-4
+          bg-[#2F4156]
+          hover:bg-[#567C8D]
+          text-white
+          rounded-2xl
+          font-semibold
+          transition-all
+          duration-300
+          shadow-lg
+          hover:shadow-xl
+          flex
+          items-center
+          gap-3
+          mx-auto
+        "
       >
         {isLoading ? (
           <>
@@ -483,11 +559,31 @@ const SearchBar = ({ onSearch, isLoading, compact = false }) => {
         )}
       </motion.button>
 
-      {/* Keyboard Shortcut Hint */}
-      <div className="text-xs text-slate-500 flex items-center gap-4 flex-wrap justify-center">
-        <span>Press <kbd className="px-2 py-0.5 bg-slate-800 rounded border border-slate-700 text-[10px] font-mono">Enter</kbd> to search</span>
-        <span>Press <kbd className="px-2 py-0.5 bg-slate-800 rounded border border-slate-700 text-[10px] font-mono">Ctrl + K</kbd> to focus</span>
-        <span>Press <kbd className="px-2 py-0.5 bg-slate-800 rounded border border-slate-700 text-[10px] font-mono">Esc</kbd> to clear</span>
+      {/* Popular Stocks */}
+      <div className="flex flex-wrap gap-3 justify-center items-center mt-5">
+        <span className="text-sm text-[#567C8D] font-semibold flex items-center gap-2">
+          <Zap size={14} className="text-[#567C8D]" />
+          Popular:
+        </span>
+        {popularStocks.map((stock) => (
+          <motion.button
+            key={stock.symbol}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              setSymbol(stock.symbol);
+              onSearch(stock.symbol);
+              saveRecentSearch(stock.symbol);
+            }}
+            disabled={isLoading}
+            className="text-sm px-4 py-1.5 rounded-full bg-white backdrop-blur-sm hover:bg-[#F5EFEB] transition border border-[#C8D9E6] hover:border-[#567C8D] disabled:opacity-50 flex items-center gap-2 group shadow-lg shadow-black/5"
+          >
+            <span className="font-semibold text-[#2F4156]">{stock.symbol}</span>
+            <span className="text-xs text-[#567C8D] group-hover:text-[#2F4156] transition hidden sm:inline">
+              {stock.name}
+            </span>
+          </motion.button>
+        ))}
       </div>
     </div>
   );

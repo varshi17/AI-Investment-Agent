@@ -4,97 +4,134 @@ import axios from "axios";
 const BASE_URL = "https://finnhub.io/api/v1";
 const API_KEY = process.env.FINNHUB_API_KEY;
 
-// Check if API key exists
+// ===============================
+// Simple In-Memory Cache
+// ===============================
+const cache = new Map();
+
+const CACHE_TIME = {
+  PROFILE: 24 * 60 * 60 * 1000,
+  FINANCIALS: 24 * 60 * 60 * 1000,
+  NEWS: 30 * 60 * 1000,
+  QUOTE: 60 * 1000,
+  RECOMMENDATION: 6 * 60 * 60 * 1000,
+};
+
+function getCache(key) {
+  const item = cache.get(key);
+  if (!item) return null;
+  if (Date.now() > item.expiry) {
+    cache.delete(key);
+    return null;
+  }
+  return item.data;
+}
+
+function setCache(key, data, ttl) {
+  cache.set(key, { data, expiry: Date.now() + ttl });
+}
+
 if (!API_KEY) {
   console.error('❌ FINNHUB_API_KEY is not set in environment variables');
 }
 
 const finnhubAPI = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
-  params: {
-    token: API_KEY
-  }
+  timeout: 8000,
+  params: { token: API_KEY }
 });
 
+// ===== API Functions =====
+
+// Cached Profile
 export const getCompanyProfile = async (symbol) => {
+  const key = `profile-${symbol}`;
+  const cached = getCache(key);
+  if (cached) return cached;
+
   try {
-    console.log(`📊 Fetching profile for ${symbol}...`);
-    
-    const response = await finnhubAPI.get('/stock/profile2', { 
-      params: { symbol: symbol.toUpperCase() } 
+    const response = await finnhubAPI.get('/stock/profile2', {
+      params: { symbol: symbol.toUpperCase() }
     });
-    
     if (!response.data || Object.keys(response.data).length === 0) {
-      console.warn(`⚠️ No profile data found for ${symbol}`);
-      return getMockProfile(symbol);
+      const mock = getMockProfile(symbol);
+      setCache(key, mock, CACHE_TIME.PROFILE);
+      return mock;
     }
-    
-    console.log(`✅ Profile found for ${symbol}`);
+    setCache(key, response.data, CACHE_TIME.PROFILE);
     return response.data;
   } catch (error) {
-    console.error(`📊 Finnhub Profile Error for ${symbol}:`, error.message);
-    return getMockProfile(symbol);
+    console.error(`📊 Profile Error for ${symbol}:`, error.message);
+    const mock = getMockProfile(symbol);
+    setCache(key, mock, CACHE_TIME.PROFILE);
+    return mock;
   }
 };
 
+// Cached Quote
 export const getStockQuote = async (symbol) => {
+  const key = `quote-${symbol}`;
+  const cached = getCache(key);
+  if (cached) return cached;
+
   try {
-    console.log(`💰 Fetching quote for ${symbol}...`);
-    
-    const response = await finnhubAPI.get('/quote', { 
-      params: { symbol: symbol.toUpperCase() } 
+    const response = await finnhubAPI.get('/quote', {
+      params: { symbol: symbol.toUpperCase() }
     });
-    
     if (!response.data || response.data.c === 0) {
-      console.warn(`⚠️ No quote data found for ${symbol}`);
-      return getMockQuote(symbol);
+      const mock = getMockQuote(symbol);
+      setCache(key, mock, CACHE_TIME.QUOTE);
+      return mock;
     }
-    
-    console.log(`✅ Quote found for ${symbol}`);
+    setCache(key, response.data, CACHE_TIME.QUOTE);
     return response.data;
   } catch (error) {
-    console.error(`💰 Finnhub Quote Error for ${symbol}:`, error.message);
-    return getMockQuote(symbol);
+    console.error(`💰 Quote Error for ${symbol}:`, error.message);
+    const mock = getMockQuote(symbol);
+    setCache(key, mock, CACHE_TIME.QUOTE);
+    return mock;
   }
 };
 
+// Historical Data – always returns mock on failure (so chart never empty)
 export const getHistoricalData = async (symbol) => {
   try {
     const now = Math.floor(Date.now() / 1000);
     const from = now - 60 * 60 * 24 * 30; // 30 days
-    
     const response = await finnhubAPI.get('/stock/candle', {
-      params: { 
-        symbol: symbol.toUpperCase(), 
-        resolution: 'D', 
-        from, 
-        to: now 
+      params: {
+        symbol: symbol.toUpperCase(),
+        resolution: 'D',
+        from,
+        to: now
       }
     });
-    
     if (response.data.s === 'no_data') {
-      console.warn(`⚠️ No historical data for ${symbol}`);
       return getMockHistorical(symbol);
     }
-    
     return response.data;
   } catch (error) {
+    // Always return mock data instead of null (so chart isn't empty)
+    if (error.response?.status === 403) {
+      console.warn(`⚠️ Historical data not available for ${symbol} (403), using mock.`);
+      return getMockHistorical(symbol);
+    }
     console.error(`📈 Historical Data Error for ${symbol}:`, error.message);
     return getMockHistorical(symbol);
   }
 };
 
-export const getCompanyNews = async (symbol, limit = 10) => {
+// Cached News with better filtering & sorting
+export const getCompanyNews = async (symbol, limit = 5) => {
+  const key = `news-${symbol}`;
+  const cached = getCache(key);
+  if (cached) return cached;
+
   try {
-    console.log(`📰 Fetching news for ${symbol}...`);
-    
     const today = new Date();
     const from = new Date();
     from.setDate(today.getDate() - 7);
-    
     const formatDate = (date) => date.toISOString().split('T')[0];
-    
     const response = await finnhubAPI.get('/company-news', {
       params: {
         symbol: symbol.toUpperCase(),
@@ -102,27 +139,66 @@ export const getCompanyNews = async (symbol, limit = 10) => {
         to: formatDate(today)
       }
     });
-    
-    console.log(`✅ Found ${response.data.length} news articles for ${symbol}`);
-    
-    // Return up to limit articles, filtered for quality
     const articles = response.data
-      .filter(item => item.headline && item.headline.length > 10)
+      .filter(item => item.headline && item.summary && item.headline.length > 15)
+      .sort((a, b) => b.datetime - a.datetime)
       .slice(0, limit);
-    
     if (articles.length === 0) {
-      console.warn(`⚠️ No quality news found for ${symbol}`);
-      return getMockNews(symbol);
+      const mock = getMockNews(symbol);
+      setCache(key, mock, CACHE_TIME.NEWS);
+      return mock;
     }
-    
+    setCache(key, articles, CACHE_TIME.NEWS);
     return articles;
   } catch (error) {
     console.error(`📰 News Error for ${symbol}:`, error.message);
-    return getMockNews(symbol);
+    const mock = getMockNews(symbol);
+    setCache(key, mock, CACHE_TIME.NEWS);
+    return mock;
   }
 };
 
-// MOCK DATA for development
+// Cached Basic Financials
+export const getBasicFinancials = async (symbol) => {
+  const key = `financials-${symbol}`;
+  const cached = getCache(key);
+  if (cached) return cached;
+
+  try {
+    const response = await finnhubAPI.get('/stock/metric', {
+      params: {
+        symbol: symbol.toUpperCase(),
+        metric: 'all'
+      }
+    });
+    const metrics = response.data.metric || {};
+    setCache(key, metrics, CACHE_TIME.FINANCIALS);
+    return metrics;
+  } catch (err) {
+    console.error(`📊 Basic Financials Error for ${symbol}:`, err.message);
+    return {};
+  }
+};
+
+// Cached Recommendation Trends
+export const getRecommendationTrends = async (symbol) => {
+  const key = `rec-${symbol}`;
+  const cached = getCache(key);
+  if (cached) return cached;
+
+  try {
+    const response = await finnhubAPI.get('/stock/recommendation', {
+      params: { symbol: symbol.toUpperCase() }
+    });
+    setCache(key, response.data, CACHE_TIME.RECOMMENDATION);
+    return response.data;
+  } catch (error) {
+    console.error(`📊 Recommendation Error for ${symbol}:`, error.message);
+    return null;
+  }
+};
+
+// ===== MOCK DATA =====
 function getMockProfile(symbol) {
   const mockData = {
     'TSLA': {
@@ -132,7 +208,7 @@ function getMockProfile(symbol) {
       finnhubIndustry: 'Automotive',
       country: 'US',
       ipo: '2010-06-29',
-      marketCapitalization: 750000000000,
+      marketCapitalization: 750000,
       logo: 'https://logo.clearbit.com/tesla.com'
     },
     'AAPL': {
@@ -142,21 +218,10 @@ function getMockProfile(symbol) {
       finnhubIndustry: 'Technology',
       country: 'US',
       ipo: '1980-12-12',
-      marketCapitalization: 2800000000000,
+      marketCapitalization: 2800000,
       logo: 'https://logo.clearbit.com/apple.com'
-    },
-    'MSFT': {
-      name: 'Microsoft Corporation',
-      ticker: 'MSFT',
-      exchange: 'NASDAQ',
-      finnhubIndustry: 'Technology',
-      country: 'US',
-      ipo: '1986-03-13',
-      marketCapitalization: 3100000000000,
-      logo: 'https://logo.clearbit.com/microsoft.com'
     }
   };
-  
   return mockData[symbol.toUpperCase()] || {
     name: `${symbol} Inc.`,
     ticker: symbol.toUpperCase(),
@@ -164,7 +229,7 @@ function getMockProfile(symbol) {
     finnhubIndustry: 'Technology',
     country: 'US',
     ipo: '2000-01-01',
-    marketCapitalization: 100000000000,
+    marketCapitalization: 100000,
     logo: `https://logo.clearbit.com/${symbol.toLowerCase()}.com`
   };
 }
@@ -186,18 +251,15 @@ function getMockHistorical(symbol) {
   const count = 30;
   const data = [];
   let price = Math.random() * 200 + 50;
-  
   for (let i = 0; i < count; i++) {
     price = price * (1 + (Math.random() - 0.5) * 0.03);
     data.push(price);
   }
-  
   const now = Math.floor(Date.now() / 1000);
   const timestamps = [];
   for (let i = count - 1; i >= 0; i--) {
     timestamps.push(now - i * 86400);
   }
-  
   return {
     s: 'ok',
     c: data,
@@ -211,56 +273,28 @@ function getMockHistorical(symbol) {
 
 function getMockNews(symbol) {
   const companies = {
-    'AAPL': ['Apple', 'iPhone', 'iOS', 'Mac'],
-    'TSLA': ['Tesla', 'Electric Vehicle', 'Elon Musk', 'Cybertruck'],
-    'MSFT': ['Microsoft', 'Windows', 'Azure', 'AI'],
-    'GOOGL': ['Google', 'Alphabet', 'Android', 'Search'],
-    'AMZN': ['Amazon', 'AWS', 'E-commerce', 'Bezos'],
-    'NVDA': ['NVIDIA', 'GPU', 'AI Chip', 'Graphics']
+    'AAPL': ['Apple', 'iPhone', 'iOS'],
+    'TSLA': ['Tesla', 'Electric Vehicle', 'Elon Musk']
   };
-
-  const keywords = companies[symbol.toUpperCase()] || [symbol, 'Stock', 'Market', 'Tech'];
-  
+  const keywords = companies[symbol.toUpperCase()] || [symbol, 'Stock'];
   return [
     {
       headline: `${keywords[0]} Announces Strong Quarterly Earnings`,
-      summary: `${keywords[0]} reported better than expected Q3 results with revenue growth of 15% year-over-year.`,
+      summary: `${keywords[0]} reported better than expected results.`,
       source: 'MarketWatch',
-      url: '#',
       datetime: Math.floor(Date.now() / 1000) - 3600,
-      image: null
     },
     {
       headline: `${keywords[0]} Partners with Leading AI Company`,
-      summary: `Strategic partnership aims to integrate advanced AI capabilities into ${keywords[0]}'s products.`,
+      summary: `Strategic partnership aims to integrate AI capabilities.`,
       source: 'TechCrunch',
-      url: '#',
       datetime: Math.floor(Date.now() / 1000) - 7200,
-      image: null
     },
     {
       headline: `Analysts Upgrade ${keywords[0]} Stock Target`,
-      summary: `Multiple analysts have raised their price targets for ${keywords[0]} citing strong growth potential.`,
+      summary: `Analysts have raised price targets.`,
       source: 'Bloomberg',
-      url: '#',
       datetime: Math.floor(Date.now() / 1000) - 14400,
-      image: null
-    },
-    {
-      headline: `${keywords[0]} Expands into New Markets`,
-      summary: `Company announces expansion plans into emerging markets as part of global growth strategy.`,
-      source: 'Reuters',
-      url: '#',
-      datetime: Math.floor(Date.now() / 1000) - 86400,
-      image: null
-    },
-    {
-      headline: `${keywords[0]} Faces Regulatory Challenges`,
-      summary: `Regulatory bodies are reviewing ${keywords[0]}'s business practices in key markets.`,
-      source: 'Financial Times',
-      url: '#',
-      datetime: Math.floor(Date.now() / 1000) - 172800,
-      image: null
     }
   ];
 }

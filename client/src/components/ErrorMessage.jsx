@@ -1,36 +1,27 @@
-// components/ErrorBoundary.jsx
-import { Component } from "react";
+// components/ErrorMessage.jsx
+import { AlertTriangle, X } from "lucide-react";
 
-class ErrorBoundary extends Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
+const ErrorMessage = ({ message, onClose }) => {
+  if (!message) return null;
 
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-50 px-5 py-4">
+      <AlertTriangle size={20} className="text-red-400 shrink-0 mt-0.5" />
+      <div className="flex-1">
+        <p className="text-sm font-semibold text-[#2F4156]">Analysis failed</p>
+        <p className="text-sm text-[#567C8D] mt-0.5">{message}</p>
+      </div>
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="text-[#567C8D] hover:text-[#2F4156] transition p-1 shrink-0"
+          aria-label="Dismiss error"
+        >
+          <X size={16} />
+        </button>
+      )}
+    </div>
+  );
+};
 
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-950">
-          <div className="text-center p-8">
-            <div className="text-6xl mb-4">😅</div>
-            <h2 className="text-2xl font-bold mb-2">Something went wrong</h2>
-            <p className="text-slate-400 mb-4">{this.state.error?.message}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-blue-600 px-6 py-2 rounded-lg hover:bg-blue-700 transition"
-            >
-              Reload Page
-            </button>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-export default ErrorBoundary;
+export default ErrorMessage;

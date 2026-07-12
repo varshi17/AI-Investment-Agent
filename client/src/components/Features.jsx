@@ -6,83 +6,93 @@ import {
   Shield, 
   Newspaper, 
   LayoutDashboard, 
-  Lock 
+  Lock,
+  Sparkles,
+  ArrowRight
 } from "lucide-react";
 
 const Features = () => {
   const features = [
     {
-      icon: <Brain className="text-blue-400" size={28} />,
-      title: "AI Powered Analysis",
-      description: "Gemini AI analyzes financial data, market trends, and company metrics to provide intelligent investment insights."
+      icon: <Brain className="text-[#567C8D]" size={28} />,
+      title: "AI-Powered Analysis",
+      description: "Advanced machine learning algorithms analyze market trends, financial data, and news sentiment to provide intelligent stock insights."
     },
     {
-      icon: <LineChart className="text-green-400" size={28} />,
-      title: "Live Stock Data",
-      description: "Real-time stock prices, historical data, and market indicators from Finnhub's comprehensive financial API."
+      icon: <LineChart className="text-[#2F4156]" size={28} />,
+      title: "Real-Time Data",
+      description: "Access live market data, financial metrics, and company fundamentals updated in real-time for accurate decision making."
     },
     {
-      icon: <Shield className="text-red-400" size={28} />,
-      title: "Risk Detection",
-      description: "AI identifies potential risks, market volatility, and red flags to help you make informed investment decisions."
+      icon: <Shield className="text-[#567C8D]" size={28} />,
+      title: "Risk Assessment",
+      description: "Comprehensive risk analysis with volatility metrics, value-at-risk calculations, and portfolio optimization recommendations."
     },
     {
-      icon: <Newspaper className="text-yellow-400" size={28} />,
-      title: "Latest Financial News",
-      description: "Stay updated with real-time news, analyst ratings, and market sentiment from trusted financial sources."
+      icon: <Newspaper className="text-[#2F4156]" size={28} />,
+      title: "News Aggregation",
+      description: "Stay informed with real-time news sentiment analysis, earnings reports, and market-moving events affecting your stocks."
     },
     {
-      icon: <LayoutDashboard className="text-purple-400" size={28} />,
-      title: "Real-Time Dashboard",
-      description: "Beautiful, interactive analytics dashboard with charts, metrics, and AI-powered recommendations."
+      icon: <LayoutDashboard className="text-[#567C8D]" size={28} />,
+      title: "Interactive Dashboard",
+      description: "Beautiful, intuitive dashboard with customizable charts, key metrics, and visual data representations for better insights."
     },
     {
-      icon: <Lock className="text-cyan-400" size={28} />,
-      title: "Secure & Fast",
-      description: "Your data is private and secure. No personal information is stored, and all analysis happens in real-time."
+      icon: <Lock className="text-[#2F4156]" size={28} />,
+      title: "Enterprise Security",
+      description: "Bank-grade encryption, secure data handling, and privacy-first approach to protect your financial information."
     }
   ];
 
   return (
-    <div className="flex flex-col items-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        viewport={{ once: true }}
-        className="text-center mb-16"
-      >
-        <h2 className="text-4xl md:text-5xl font-bold mb-4">
-          Why Choose <span className="gradient-text">AI Investor</span>
+    <div className="w-full">
+      {/* Section Header */}
+      <div className="text-center mb-12 md:mb-16">
+        <span className="inline-flex items-center rounded-full border border-[#567C8D]/20 bg-[#C8D9E6] px-4 py-1.5 text-sm font-semibold text-[#2F4156] mb-5">
+          <Sparkles size={14} className="mr-2" />
+          Powerful Features
+        </span>
+        <h2 className="text-3xl md:text-5xl font-extrabold leading-tight text-[#2F4156] mb-5">
+          Why Choose AI Investor
         </h2>
-        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-          Powered by cutting-edge AI technology and real-time market data
+        <p className="text-[#567C8D] text-base md:text-lg leading-8 max-w-3xl mx-auto">
+          Powered by cutting-edge AI technology and real-time market data to help you 
+          make smarter investment decisions with confidence.
         </p>
-      </motion.div>
+      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl mx-auto">
+      {/* Features Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
         {features.map((feature, index) => (
           <motion.div
             key={index}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
             viewport={{ once: true }}
-            whileHover={{ 
-              y: -8,
-              transition: { duration: 0.2 }
-            }}
-            className="group bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300"
+            className="group flex flex-col bg-white rounded-3xl border border-[#C8D9E6] p-8 min-h-[280px] shadow-sm hover:-translate-y-2 hover:border-[#567C8D] hover:shadow-2xl transition-all duration-300"
           >
-            <div className="w-14 h-14 rounded-xl bg-slate-800/80 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-300">
+            {/* Icon Box */}
+            <div className="w-16 h-16 rounded-2xl bg-[#F5EFEB] flex items-center justify-center mb-6 group-hover:scale-110 transition duration-300">
               {feature.icon}
             </div>
-            <h3 className="text-lg font-semibold mb-2 group-hover:text-blue-400 transition">
+
+            {/* Title */}
+            <h3 className="text-2xl font-bold text-[#2F4156] mb-4 group-hover:text-[#567C8D] transition">
               {feature.title}
             </h3>
-            <p className="text-sm text-slate-400 leading-relaxed">
+
+            {/* Description */}
+            <p className="text-[#567C8D] text-base leading-7 flex-1">
               {feature.description}
             </p>
+
+            {/* Learn More Link - Optional */}
+            <div className="mt-6 flex items-center text-sm font-semibold text-[#567C8D] group-hover:text-[#2F4156] transition opacity-0 group-hover:opacity-100">
+              Learn More
+              <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition" />
+            </div>
           </motion.div>
         ))}
       </div>

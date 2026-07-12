@@ -30,44 +30,38 @@ const FAQ = () => {
   ];
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center ">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         viewport={{ once: true }}
-        className="text-center mb-16"
+        className="text-center mb-14 md:mb-16"
       >
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <HelpCircle className="text-blue-400" size={28} />
-          <h2 className="text-4xl md:text-5xl font-bold">
-            Frequently Asked <span className="gradient-text">Questions</span>
-          </h2>
-        </div>
-        <p className="text-slate-400 text-lg">
-          Everything you need to know about AI Investor
-        </p>
+        <h2 className="text-3xl md:text-5xl font-extrabold text-[#2F4156] mb-4">
+          Frequently Asked <span className="text-[#567C8D]">Questions</span>
+        </h2>
       </motion.div>
 
-      <div className="space-y-4 w-full max-w-4xl mx-auto">
+      <div className="space-y-5 w-full max-w-4xl mx-auto">
         {faqs.map((faq, index) => (
           <motion.div
             key={index}
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: index * 0.1 }}
+            transition={{ duration: 0.4, delay: index * 0.05 }}
             viewport={{ once: true }}
-            className="bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-slate-600 transition-all duration-300"
+            className="bg-white rounded-3xl border border-[#C8D9E6] overflow-hidden shadow-sm hover:shadow-lg hover:border-[#567C8D] transition-all duration-300"
           >
             <button
               onClick={() => setOpenIndex(openIndex === index ? null : index)}
-              className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-800/30 transition"
+              className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-[#F5EFEB] transition"
             >
-              <span className="text-base font-semibold">{faq.question}</span>
+              <span className="text-lg font-semibold text-[#2F4156]">{faq.question}</span>
               <motion.div
                 animate={{ rotate: openIndex === index ? 180 : 0 }}
                 transition={{ duration: 0.3 }}
-                className="text-slate-400"
+                className="text-[#567C8D]"
               >
                 <ChevronDown size={20} />
               </motion.div>
@@ -76,13 +70,24 @@ const FAQ = () => {
             <AnimatePresence>
               {openIndex === index && (
                 <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="px-6 pb-4"
+                  initial={{
+                    opacity: 0,
+                    height: 0
+                  }}
+                  animate={{
+                    opacity: 1,
+                    height: "auto"
+                  }}
+                  exit={{
+                    opacity: 0,
+                    height: 0
+                  }}
+                  transition={{
+                    duration: 0.35
+                  }}
+                  className="px-6 pb-6"
                 >
-                  <p className="text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-4">
+                  <p className="text-[#567C8D] leading-8 border-t border-[#C8D9E6] pt-4">
                     {faq.answer}
                   </p>
                 </motion.div>

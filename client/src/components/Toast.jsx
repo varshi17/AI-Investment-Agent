@@ -23,14 +23,16 @@ const Toast = ({ message, type = "info", onClose }) => {
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -50 }}
-        className={`fixed top-4 right-4 z-50 p-4 rounded-xl border ${colors[type]} backdrop-blur-lg max-w-md`}
+        className={`fixed top-4 right-4 z-50 p-4 rounded-xl border ${colors[type]} bg-white shadow-xl max-w-md`}
       >
         <div className="flex items-start gap-3">
           <Icon className="w-6 h-6 flex-shrink-0 mt-0.5" />
-          <p className="flex-1">{message}</p>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">×</button>
+          <p className="flex-1 text-[#2F4156]">{message}</p>
+          <button onClick={onClose} className="text-[#567C8D] hover:text-[#2F4156]">×</button>
         </div>
       </motion.div>
     </AnimatePresence>
   );
 };
+
+export default Toast;

@@ -10,13 +10,14 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const mobileMenuRef = useRef(null);
 
-  // Solution 3: Use useMemo to prevent recreating links on every render
   const links = useMemo(() => [
     { id: "home", label: "Home" },
+    // { id: "about", label: "About" },
     { id: "features", label: "Features" },
     { id: "how", label: "How It Works" },
     { id: "insights", label: "Insights" },
-    { id: "faq", label: "FAQ" }
+    { id: "faq", label: "FAQ" },
+    { id: "contact", label: "Contact" }
   ], []);
 
   // Toggle theme
@@ -36,22 +37,15 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Solution 1: scrollToSection with manual calculation
+  // React way: scroll to section using scrollIntoView
   const scrollToSection = (sectionId) => {
     const section = document.getElementById(sectionId);
-
-    if (!section) return;
-
-    const y =
-      section.getBoundingClientRect().top +
-      window.pageYOffset -
-      90;
-
-    window.scrollTo({
-      top: y,
-      behavior: "smooth",
-    });
-
+    if (section) {
+      section.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
     setActiveSection(sectionId);
     setIsMobileMenuOpen(false);
   };
@@ -65,7 +59,7 @@ const Navbar = () => {
       setIsScrolled(scrollPosition > 50);
 
       // Update active section
-      const offset = 100;
+      const offset = 120;
 
       for (let i = links.length - 1; i >= 0; i--) {
         const section = document.getElementById(links[i].id);
@@ -82,18 +76,13 @@ const Navbar = () => {
     };
 
     window.addEventListener('scroll', handleScroll);
-    // Initial check
     handleScroll();
     
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [links]); // Solution 3: Added links as dependency
+  }, [links]);
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      isScrolled 
-        ? 'backdrop-blur-2xl bg-slate-950/90 border-b border-white/5 shadow-[0_10px_40px_rgba(0,0,0,.25)]' 
-        : 'backdrop-blur-2xl bg-slate-950/70 border-b border-white/5'
-    }`}>
+    <nav className="fixed top-0 left-0 w-full z-50 bg-[#2F4156]/95 backdrop-blur-xl border-b border-[#567C8D]/20 shadow-md transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 md:h-20">
           
@@ -103,33 +92,33 @@ const Navbar = () => {
             onClick={() => scrollToSection('home')}
           >
             <motion.div 
-              whileHover={{ scale: 1.05, rotate: 180 }}
-              transition={{ duration: 0.5 }}
-              className="h-11 w-11 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+              className="h-11 w-11 rounded-2xl bg-[#567C8D] flex items-center justify-center shadow-lg shadow-[#2F4156]/20"
             >
               <TrendingUp size={22} className="text-white" />
             </motion.div>
 
             <div className="hidden sm:block">
-              <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+              <h1 className="text-xl font-bold tracking-tight text-white">
                 AI Investor
               </h1>
-              <p className="text-xs text-slate-500 leading-none">
+              <p className="text-xs text-[#C8D9E6] leading-none">
                 Smart Stock Analysis
               </p>
             </div>
           </div>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - React Way */}
           <div className="hidden lg:flex items-center gap-8">
             {links.map((link) => (
               <button
                 key={link.id}
                 onClick={() => scrollToSection(link.id)}
                 className={`relative text-sm font-medium transition after:absolute after:left-0 after:-bottom-2 after:h-[2px] after:transition-all after:duration-300 ${
-                  activeSection === link.id 
-                    ? 'text-white after:w-full after:bg-gradient-to-r from-blue-500 to-purple-500' 
-                    : 'text-slate-400 hover:text-white after:w-0 hover:after:w-full after:bg-gradient-to-r from-blue-500 to-purple-500'
+                  activeSection === link.id
+                  ? 'text-white after:w-full after:bg-[#C8D9E6]'
+                  : 'text-[#C8D9E6] hover:text-white after:w-0 hover:after:w-full after:bg-[#C8D9E6]'
                 }`}
               >
                 {link.label}
@@ -144,15 +133,14 @@ const Navbar = () => {
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.95 }}
               onClick={toggleTheme}
-              className="h-11 w-11 rounded-xl border border-slate-700 bg-slate-900 hover:border-blue-500 transition flex items-center justify-center hover:shadow-lg hover:shadow-blue-500/10"
-            >
-              <Sun size={18} className="text-slate-400 hover:text-yellow-400 transition" />
+              className="h-11 w-11 rounded-xl border border-[#567C8D]/40 bg-[#567C8D]/20 hover:bg-[#567C8D]/40 transition flex items-center justify-center">
+              <Sun size={18} className="text-[#F5EFEB] transition" />
             </motion.button>
 
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden h-11 w-11 rounded-xl border border-slate-700 bg-slate-900 hover:border-blue-500 transition flex items-center justify-center"
+              className="lg:hidden h-11 w-11 rounded-xl border border-[#567C8D]/40 bg-[#567C8D]/20"
             >
               {isMobileMenuOpen ? <X size={18} className="text-white" /> : <Menu size={18} className="text-white" />}
             </button>
@@ -168,7 +156,7 @@ const Navbar = () => {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="lg:hidden overflow-hidden backdrop-blur-xl bg-slate-900/80 rounded-2xl border border-white/5 shadow-xl mt-2"
+              className="lg:hidden overflow-hidden backdrop-blur-xl bg-[#2F4156] rounded-2xl border border-white/5 shadow-xl mt-2"
             >
               <div className="p-4 space-y-2">
                 {links.map((link) => (
@@ -178,14 +166,13 @@ const Navbar = () => {
                     className={`w-full text-left px-4 py-3 text-sm font-medium rounded-xl transition ${
                       activeSection === link.id 
                         ? 'text-white bg-blue-500/10' 
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        : 'text-[#C8D9E6] hover:text-white hover:bg-white/5'
                     }`}
                   >
                     {link.label}
                   </button>
                 ))}
                 
-                {/* Mobile Divider */}
                 <div className="border-t border-white/5 my-2"></div>
                 
                 <button
@@ -193,7 +180,7 @@ const Navbar = () => {
                     toggleTheme();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full text-left px-4 py-3 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition flex items-center gap-3"
+                  className="w-full text-left px-4 py-3 text-sm font-medium text-[#C8D9E6] hover:text-white hover:bg-white/5 rounded-xl transition flex items-center gap-3"
                 >
                   <Sun size={16} />
                   Toggle Theme

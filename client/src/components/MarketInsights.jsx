@@ -1,6 +1,6 @@
 // components/MarketInsights.jsx
 import { motion } from "framer-motion";
-import { TrendingUp, BarChart3, Globe, Zap } from "lucide-react";
+import { TrendingUp, BarChart3, Globe } from "lucide-react";
 
 const MarketInsights = () => {
   const popularStocks = [
@@ -14,41 +14,47 @@ const MarketInsights = () => {
   const exchanges = ["NASDAQ", "NYSE", "LSE", "TSE", "SIX"];
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center gap-10 w-full px-4 md:px-8 lg:px-16 py-14">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         viewport={{ once: true }}
-        className="text-center mb-16"
+        className="text-center mb-12"
       >
-        <h2 className="text-4xl md:text-5xl font-bold mb-4">
-          Market <span className="gradient-text">Insights</span>
+        <span className="inline-block text-xs font-semibold text-[#2F4156] bg-[#C8D9E6] px-4 py-1.5 rounded-full mb-4 border border-[#567C8D]/20">
+          Live Data
+        </span>
+        <h2 className="text-3xl md:text-5xl font-extrabold text-[#2F4156] mb-4">
+          Market <span className="text-[#567C8D]">Insights</span>
         </h2>
-        <p className="text-slate-400 text-lg">
+        <p className="text-[#567C8D] text-base md:text-lg">
           Track popular stocks and market trends in real-time
         </p>
       </motion.div>
 
       {/* Popular Stocks Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 w-full max-w-7xl mx-auto mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 w-full max-w-7xl mx-auto mb-8 gap-y-4">
         {popularStocks.map((stock, index) => (
           <motion.div
             key={index}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: index * 0.1 }}
+            transition={{ duration: 0.4, delay: index * 0.05 }}
             viewport={{ once: true }}
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            className="bg-slate-900/60 backdrop-blur-sm rounded-2xl p-4 border border-slate-700/50 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300 cursor-pointer"
+            whileHover={{
+              y: -6,
+              scale: 1.02,
+            }}
+            className="bg-white rounded-3xl p-5 border border-[#C8D9E6] shadow-sm hover:shadow-xl hover:border-[#567C8D] hover:-translate-y-1 transition-all duration-300 cursor-pointer"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold">{stock.symbol}</span>
-              <TrendingUp className="text-blue-400" size={14} />
+              <span className="text-base font-bold text-[#2F4156]">{stock.symbol}</span>
+              <TrendingUp className="text-[#567C8D]" size={16} />
             </div>
-            <p className="text-xs text-slate-400">{stock.name}</p>
+            <p className="text-sm text-[#567C8D] truncate">{stock.name}</p>
             <div className="flex items-center justify-between mt-3">
-              <span className="text-lg font-bold">{stock.price}</span>
+              <span className="text-2xl font-bold text-[#2F4156]">{stock.price}</span>
               <span className={`text-sm font-medium ${stock.change.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>
                 {stock.change}
               </span>
@@ -56,7 +62,7 @@ const MarketInsights = () => {
           </motion.div>
         ))}
       </div>
-
+      
       {/* Exchanges and Metrics */}
       <div className="grid md:grid-cols-2 gap-6 w-full max-w-7xl mx-auto">
         <motion.div
@@ -64,15 +70,15 @@ const MarketInsights = () => {
           whileInView={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
           viewport={{ once: true }}
-          className="bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50"
+          className="bg-white rounded-3xl p-6 border border-[#C8D9E6] shadow-sm hover:shadow-xl hover:border-[#567C8D] transition-all duration-300"
         >
           <div className="flex items-center gap-2 mb-4">
-            <Globe className="text-blue-400" size={20} />
-            <h3 className="text-lg font-semibold">Supported Exchanges</h3>
+            <Globe className="text-[#567C8D]" size={20} />
+            <h3 className="text-xl font-bold text-[#2F4156]">Supported Exchanges</h3>
           </div>
           <div className="flex flex-wrap gap-2">
             {exchanges.map((exchange, index) => (
-              <span key={index} className="px-3 py-1 bg-slate-800/80 rounded-full text-sm text-slate-300 border border-slate-700/50">
+              <span key={index} className="px-3 py-1.5 bg-[#F5EFEB] rounded-full text-sm text-[#2F4156] border border-[#C8D9E6]">
                 {exchange}
               </span>
             ))}
@@ -84,28 +90,28 @@ const MarketInsights = () => {
           whileInView={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
           viewport={{ once: true }}
-          className="bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50"
+          className="bg-white rounded-3xl p-6 border border-[#C8D9E6] shadow-sm hover:shadow-xl hover:border-[#567C8D] transition-all duration-300"
         >
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="text-purple-400" size={20} />
-            <h3 className="text-lg font-semibold">Key Metrics</h3>
+            <BarChart3 className="text-[#2F4156]" size={20} />
+            <h3 className="text-xl font-bold text-[#2F4156]">Key Metrics</h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-slate-400">Market Cap</p>
-              <p className="text-lg font-bold">$45.2T</p>
+              <p className="text-xs text-[#567C8D]">Market Cap</p>
+              <p className="text-2xl font-bold text-[#2F4156]">$45.2T</p>
             </div>
             <div>
-              <p className="text-xs text-slate-400">Volume</p>
-              <p className="text-lg font-bold">12.4B</p>
+              <p className="text-xs text-[#567C8D]">Volume</p>
+              <p className="text-2xl font-bold text-[#2F4156]">12.4B</p>
             </div>
             <div>
-              <p className="text-xs text-slate-400">Valuation</p>
-              <p className="text-lg font-bold">$38.7T</p>
+              <p className="text-xs text-[#567C8D]">Valuation</p>
+              <p className="text-2xl font-bold text-[#2F4156]">$38.7T</p>
             </div>
             <div>
-              <p className="text-xs text-slate-400">Growth</p>
-              <p className="text-lg font-bold text-green-400">+8.2%</p>
+              <p className="text-xs text-[#567C8D]">Growth</p>
+              <p className="text-2xl font-bold text-green-400">+8.2%</p>
             </div>
           </div>
         </motion.div>

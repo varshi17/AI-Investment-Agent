@@ -8,10 +8,10 @@ const ConfidenceGauge = ({ confidence = 50, label = "AI Confidence Score" }) => 
   const color = confidence >= 70 ? '#22c55e' : confidence >= 40 ? '#eab308' : '#ef4444';
 
   return (
-    <div className="bg-slate-900 rounded-xl p-6 border border-slate-800">
+    <div className="bg-white rounded-2xl p-6 border border-[#C8D9E6] shadow-sm hover:shadow-xl transition-all">
       <div className="flex items-center gap-3 mb-4">
-        <Brain className="text-blue-400" size={20} />
-        <h3 className="text-lg font-semibold">{label}</h3>
+        <Brain className="text-[#567C8D]" size={20} />
+        <h3 className="text-lg font-semibold text-[#2F4156]">{label}</h3>
       </div>
       
       <div className="flex items-center justify-between">
@@ -22,7 +22,7 @@ const ConfidenceGauge = ({ confidence = 50, label = "AI Confidence Score" }) => 
               cx="64"
               cy="64"
               r="45"
-              stroke="#1e293b"
+              stroke="#E2E8F0"
               strokeWidth="12"
               fill="none"
             />
@@ -45,7 +45,7 @@ const ConfidenceGauge = ({ confidence = 50, label = "AI Confidence Score" }) => 
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.5 }}
-              className="text-3xl font-bold"
+              className="text-3xl font-bold text-[#2F4156]"
               style={{ color }}
             >
               {confidence}%
@@ -56,8 +56,8 @@ const ConfidenceGauge = ({ confidence = 50, label = "AI Confidence Score" }) => 
         <div className="flex-1 ml-4">
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-slate-400">Low</span>
-              <span className="text-slate-400">High</span>
+              <span className="text-[#567C8D]">Low</span>
+              <span className="text-[#567C8D]">High</span>
             </div>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((level) => (
@@ -69,13 +69,13 @@ const ConfidenceGauge = ({ confidence = 50, label = "AI Confidence Score" }) => 
                     opacity: level * 20 <= confidence ? 1 : 0.3,
                     backgroundColor: level * 20 <= confidence 
                       ? color 
-                      : '#1e293b'
+                      : '#C8D9E6'
                   }}
                   transition={{ duration: 0.5, delay: level * 0.1 }}
                 />
               ))}
             </div>
-            <div className="flex justify-between text-xs text-slate-500">
+            <div className="flex justify-between text-xs text-[#567C8D]">
               <span>0%</span>
               <span>50%</span>
               <span>100%</span>
